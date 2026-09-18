@@ -146,6 +146,37 @@
   }
   .roster-subtable td { padding: 4px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
   .roster-subtable tbody tr:nth-child(even) { background: var(--bg-alt); }
+  .roster-row-dim { opacity: .45; }
+  .status-select { font-size: 11px; padding: 1px 3px; border: 1px solid var(--border); background: var(--card); color: var(--ink); border-radius: 4px; }
+
+  .lineup-slot-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-alt);
+  }
+  .lineup-slot-num {
+    font-family: 'Zilla Slab', Georgia, serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--header-bg);
+    width: 28px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .lineup-slot-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: var(--header-bg);
+    color: var(--chalk);
+    white-space: nowrap;
+  }
 
   .pitcher-line {
     padding: 6px 4px;
@@ -308,28 +339,81 @@
 
   <!-- LINEUP OPTIMIZER TAB -->
   <section id="tab-lineup" class="tab-panel hidden">
-    <div class="flex flex-wrap items-center gap-3 mb-4">
-      <label class="text-sm font-medium" for="lineup-team-select">JHML Team</label>
-      <select id="lineup-team-select" class="field-input rounded px-3 py-2 text-sm min-w-[200px]"></select>
-      <label class="text-sm font-medium ml-2" for="lineup-opp-throws">Opposing Pitcher Throws</label>
-      <select id="lineup-opp-throws" class="field-input rounded px-3 py-2 text-sm">
-        <option value="R">Right-Handed</option>
-        <option value="L">Left-Handed</option>
-      </select>
-    </div>
 
     <div id="lineup-empty-state" class="card-panel rounded-md p-10 text-center" style="color: var(--ink-soft);">
-      No data loaded yet. Go to the <strong>Player Cards</strong> tab and import your Hitters CSV — this dropdown will fill in automatically.
+      No data loaded yet. Go to the <strong>Player Cards</strong> tab and import your Hitters and Pitchers CSVs — these dropdowns will fill in automatically.
     </div>
 
-    <div id="lineup-body" class="hidden card-panel rounded-md p-10 text-center" style="border: 2px dashed var(--border);">
-      <div class="text-3xl mb-2">⚾</div>
-      <h2 class="font-slab font-semibold text-lg mb-2">Lineup Optimizer</h2>
-      <p class="text-sm max-w-md mx-auto" style="color: var(--ink-soft);">
-        The team and opposing-pitcher-handedness pickers above are wired up and saved, ready for the next step: picking
-        your 9-man batting order and calculating split-adjusted probabilities against that handedness. That selection
-        logic isn't built yet — let me know when you want it, and I'll add it on top of this.
-      </p>
+    <div id="lineup-body" class="hidden">
+      <div class="card-panel rounded-md p-4 mb-4">
+        <div class="text-[11px] font-semibold uppercase tracking-wide mb-2" style="color: var(--ink-soft);">Roster Controls</div>
+        <div class="flex flex-wrap items-end gap-3">
+          <div>
+            <label class="text-xs block mb-1" for="lineup-team-select">My JHML Team</label>
+            <select id="lineup-team-select" class="field-input rounded px-3 py-2 text-sm min-w-[180px]"></select>
+          </div>
+          <div>
+            <label class="text-xs block mb-1" for="lineup-opp-team-select">Opposing JHML Team</label>
+            <select id="lineup-opp-team-select" class="field-input rounded px-3 py-2 text-sm min-w-[180px]"></select>
+          </div>
+          <div>
+            <label class="text-xs block mb-1" for="lineup-opp-pitcher-select">Opposing Pitcher</label>
+            <select id="lineup-opp-pitcher-select" class="field-input rounded px-3 py-2 text-sm min-w-[200px]"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-panel rounded-md p-4 mb-4">
+        <div class="text-[11px] font-semibold uppercase tracking-wide mb-2" style="color: var(--ink-soft);">Ballpark Modifiers</div>
+        <div class="flex flex-wrap items-end gap-3">
+          <div>
+            <label class="text-xs block mb-1" for="lineup-ballpark-select">Select Ballpark</label>
+            <select id="lineup-ballpark-select" class="field-input rounded px-3 py-2 text-sm min-w-[180px]">
+              <option>Neutral / Not Set</option>
+              <option>Comerica Park</option>
+              <option>Fenway Park</option>
+              <option>Coors Field</option>
+              <option>Oracle Park</option>
+              <option>Yankee Stadium</option>
+              <option>Custom Park</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs block mb-1" for="lineup-bps-adj">Ballpark Singles Adj.</label>
+            <input id="lineup-bps-adj" type="number" step="1" value="0" class="field-input rounded px-3 py-2 text-sm w-24">
+          </div>
+          <div>
+            <label class="text-xs block mb-1" for="lineup-bphr-adj">Ballpark HR Adj.</label>
+            <input id="lineup-bphr-adj" type="number" step="1" value="0" class="field-input rounded px-3 py-2 text-sm w-24">
+          </div>
+        </div>
+      </div>
+
+      <div class="card-panel rounded-md p-4 mb-4">
+        <div class="text-[11px] font-semibold uppercase tracking-wide mb-2" style="color: var(--ink-soft);">Weather Engine</div>
+        <div>
+          <label class="text-xs block mb-1" for="lineup-weather-select">Weather Conditions</label>
+          <select id="lineup-weather-select" class="field-input rounded px-3 py-2 text-sm min-w-[180px]">
+            <option>Fair</option>
+            <option>Wind Out</option>
+            <option>Wind In</option>
+          </select>
+        </div>
+      </div>
+
+      <button id="generate-lineup-btn" class="w-full sm:w-auto px-6 py-3 rounded-md text-sm font-bold uppercase tracking-wide mb-4" style="background: var(--header-bg); color: var(--chalk); border: 2px solid var(--accent);">
+        ⚾ Generate Suggested Strategic Lineup
+      </button>
+
+      <p id="lineup-generate-note" class="text-sm mb-4" style="color: var(--red);"></p>
+
+      <div id="lineup-result-card" class="card-panel rounded-md p-4 hidden">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h2 class="font-slab font-semibold text-lg">Suggested Batting Order</h2>
+          <span id="lineup-result-meta" class="text-xs font-mono" style="color: var(--ink-soft);"></span>
+        </div>
+        <div id="lineup-result-slots" class="flex flex-col gap-2"></div>
+      </div>
     </div>
   </section>
 
@@ -627,6 +711,7 @@
       fieldingRaw, fielding,
       pa: numOrNull(col(row, hc.pa)),
       ironStatus: ironStatus(col(row, hc.pa)),
+      status: "Majors", // Majors | Minors | Injured — set on the Rosters tab; re-import preserves it by name
     };
   }
 
@@ -878,8 +963,9 @@
       const rows = groups[pos].slice().sort((a, b) => a.name.localeCompare(b.name)).map(p => {
         const entry = entryForPosition(p, pos);
         const detail = (pos === "DH" && !entry) ? "DH" : fieldingDetail(entry, p.fielding.sharedOFArm);
+        const dimClass = p.status !== "Majors" ? " roster-row-dim" : "";
         return `
-          <tr>
+          <tr class="${dimClass}">
             <td>
               <div class="font-medium">${escapeHtml(p.name)} <span class="font-mono text-[11px]">(Bat: ${p.bats[0]})</span></div>
               <div class="text-[11px] font-mono" style="color: var(--ink-soft);">${escapeHtml(p.mlbTeam || "—")}</div>
@@ -888,17 +974,34 @@
             <td class="font-mono">${fmtNum(p.ab)}</td>
             <td class="font-mono">${fmtNum(p.pa)}</td>
             <td>${ironBadge(p.ironStatus)}</td>
+            <td>
+              <select class="status-select" data-player-id="${p.id}">
+                <option value="Majors" ${p.status === "Majors" ? "selected" : ""}>Majors</option>
+                <option value="Minors" ${p.status === "Minors" ? "selected" : ""}>Minors</option>
+                <option value="Injured" ${p.status === "Injured" ? "selected" : ""}>Injured</option>
+              </select>
+            </td>
           </tr>`;
       }).join("");
       return `
         <div class="card-panel rounded-md p-3">
           <div class="position-group-title">${positionLabel(pos)} (${groups[pos].length})</div>
           <table class="roster-subtable">
-            <thead><tr><th>Player</th><th>Fielding</th><th>AB</th><th>PA</th><th>Status</th></tr></thead>
+            <thead><tr><th>Player</th><th>Fielding</th><th>AB</th><th>PA</th><th>Status</th><th>Avail.</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>`;
     }).join("");
+
+    hittersGroupsEl.querySelectorAll(".status-select").forEach(sel => {
+      sel.addEventListener("change", () => {
+        const player = state.hitters.find(p => p.id === sel.dataset.playerId);
+        if (!player) return;
+        player.status = sel.value;
+        saveData();
+        renderHittersSection(teamName);
+      });
+    });
   }
 
   function renderPitchersSection(teamName) {
@@ -984,6 +1087,8 @@
     const reader = new FileReader();
     reader.onload = () => {
       const { players, skipped } = parseHittersFromFile(String(reader.result));
+      const oldStatusByName = new Map(state.hitters.map(p => [p.name, p.status]));
+      players.forEach(p => { p.status = oldStatusByName.get(p.name) || "Majors"; });
       state.hitters = players;
       saveData();
       afterImportRefresh();
@@ -1141,11 +1246,20 @@
   });
 
   // ==========================================================================
-  // LINEUP OPTIMIZER TAB — team + opposing-handedness pickers, saved to
-  // localStorage. The 9-man selection/probability logic isn't built yet.
+  // LINEUP OPTIMIZER TAB
   // ==========================================================================
   const lineupTeamSelect = document.getElementById("lineup-team-select");
-  const lineupOppThrows = document.getElementById("lineup-opp-throws");
+  const lineupOppTeamSelect = document.getElementById("lineup-opp-team-select");
+  const lineupOppPitcherSelect = document.getElementById("lineup-opp-pitcher-select");
+  const lineupBallparkSelect = document.getElementById("lineup-ballpark-select");
+  const lineupBpsAdjInput = document.getElementById("lineup-bps-adj");
+  const lineupBphrAdjInput = document.getElementById("lineup-bphr-adj");
+  const lineupWeatherSelect = document.getElementById("lineup-weather-select");
+  const generateLineupBtn = document.getElementById("generate-lineup-btn");
+  const lineupGenerateNote = document.getElementById("lineup-generate-note");
+  const lineupResultCard = document.getElementById("lineup-result-card");
+  const lineupResultMeta = document.getElementById("lineup-result-meta");
+  const lineupResultSlots = document.getElementById("lineup-result-slots");
   const lineupEmptyState = document.getElementById("lineup-empty-state");
   const lineupBodyEl = document.getElementById("lineup-body");
 
@@ -1158,14 +1272,40 @@
       lineupBodyEl.classList.add("hidden");
       return;
     }
-    const prevValue = state.lineupPrefs.teamName;
-    lineupTeamSelect.innerHTML = teams.map(t =>
-      `<option value="${escapeHtml(t)}">${t === "Free Agent" ? "Free Agents (fre)" : escapeHtml(t)}</option>`
-    ).join("");
-    lineupTeamSelect.value = teams.includes(prevValue) ? prevValue : teams[0];
-    lineupOppThrows.value = state.lineupPrefs.oppThrows === "L" ? "L" : "R";
     lineupEmptyState.classList.add("hidden");
     lineupBodyEl.classList.remove("hidden");
+
+    const prevMine = state.lineupPrefs.teamName;
+    const teamOptions = teams.map(t =>
+      `<option value="${escapeHtml(t)}">${t === "Free Agent" ? "Free Agents (fre)" : escapeHtml(t)}</option>`
+    ).join("");
+    lineupTeamSelect.innerHTML = teamOptions;
+    lineupTeamSelect.value = teams.includes(prevMine) ? prevMine : teams[0];
+
+    lineupOppTeamSelect.innerHTML = teamOptions;
+    const prevOpp = state.lineupPrefs.opponentTeam;
+    lineupOppTeamSelect.value = teams.includes(prevOpp) ? prevOpp : teams.find(t => t !== lineupTeamSelect.value) || teams[0];
+
+    lineupBallparkSelect.value = state.lineupPrefs.ballpark || "Neutral / Not Set";
+    lineupBpsAdjInput.value = state.lineupPrefs.bpsAdj ?? 0;
+    lineupBphrAdjInput.value = state.lineupPrefs.bphrAdj ?? 0;
+    lineupWeatherSelect.value = state.lineupPrefs.weather || "Fair";
+
+    renderOpponentPitcherSelect();
+  }
+
+  function renderOpponentPitcherSelect() {
+    const oppTeam = lineupOppTeamSelect.value;
+    const staff = state.pitchers.filter(p => p.jhmlTeam === oppTeam);
+    if (staff.length === 0) {
+      lineupOppPitcherSelect.innerHTML = `<option value="">No pitchers loaded for this team</option>`;
+      return;
+    }
+    const prev = state.lineupPrefs.opponentPitcherId;
+    lineupOppPitcherSelect.innerHTML = staff.map(p =>
+      `<option value="${p.id}">${escapeHtml(p.name)} (${p.throwsHand})</option>`
+    ).join("");
+    lineupOppPitcherSelect.value = staff.some(p => p.id === prev) ? prev : staff[0].id;
   }
 
   function renderLineupTab() { renderLineupTeamSelect(); }
@@ -1174,9 +1314,243 @@
     state.lineupPrefs.teamName = lineupTeamSelect.value;
     saveData();
   });
-  lineupOppThrows.addEventListener("change", () => {
-    state.lineupPrefs.oppThrows = lineupOppThrows.value;
+  lineupOppTeamSelect.addEventListener("change", () => {
+    state.lineupPrefs.opponentTeam = lineupOppTeamSelect.value;
     saveData();
+    renderOpponentPitcherSelect();
+  });
+  lineupOppPitcherSelect.addEventListener("change", () => {
+    state.lineupPrefs.opponentPitcherId = lineupOppPitcherSelect.value;
+    saveData();
+  });
+  lineupBallparkSelect.addEventListener("change", () => {
+    state.lineupPrefs.ballpark = lineupBallparkSelect.value;
+    saveData();
+  });
+  lineupBpsAdjInput.addEventListener("input", () => {
+    state.lineupPrefs.bpsAdj = Number(lineupBpsAdjInput.value) || 0;
+    saveData();
+  });
+  lineupBphrAdjInput.addEventListener("input", () => {
+    state.lineupPrefs.bphrAdj = Number(lineupBphrAdjInput.value) || 0;
+    saveData();
+  });
+  lineupWeatherSelect.addEventListener("change", () => {
+    state.lineupPrefs.weather = lineupWeatherSelect.value;
+    saveData();
+  });
+
+  // --------------------------------------------------------------------------
+  // MATCHUP OPS ENGINE — the 50/50 card-split formula.
+  //
+  // Which of the batter's two splits (vsLHP / vsRHP) gets used depends on the
+  // PITCHER's throwing hand (that's who's actually on the mound), and which
+  // of the PITCHER's two splits (vsLHB / vsRHB) gets used depends on which
+  // side of the plate the BATTER effectively stands on against that pitcher
+  // (a switch-hitter always bats opposite the pitcher's hand):
+  //
+  //   Pitcher throws L:
+  //     Batter is L        -> batter.vsLHP + pitcher.vsLHB
+  //     Batter is R or S    -> batter.vsLHP + pitcher.vsRHB
+  //   Pitcher throws R:
+  //     Batter is R        -> batter.vsRHP + pitcher.vsRHB
+  //     Batter is L or S    -> batter.vsRHP + pitcher.vsLHB
+  //
+  // Since this data is raw Strat-O-Matic dice-range counts rather than true
+  // rate stats (no real OBP/SLG to add), "Matchup OPS" here is a deliberately
+  // simple proxy: the average On-Base count plus the average Total-Base count
+  // (each blended 50/50 between batter and pitcher), nudged by the ballpark
+  // and weather modifiers below. It's meant for RELATIVE ranking of your own
+  // roster against one pitcher, not as a literal on-base/slugging percentage.
+  // --------------------------------------------------------------------------
+  function pickSplits(batter, pitcher) {
+    if (pitcher.throwsHand === "L") {
+      return batter.bats === "Left"
+        ? { batterSplit: batter.vsLHP, pitcherSplit: pitcher.vsLHB }
+        : { batterSplit: batter.vsLHP, pitcherSplit: pitcher.vsRHB }; // Right or Switch
+    }
+    return batter.bats === "Right"
+      ? { batterSplit: batter.vsRHP, pitcherSplit: pitcher.vsRHB }
+      : { batterSplit: batter.vsRHP, pitcherSplit: pitcher.vsLHB }; // Left or Switch
+  }
+
+  function calcMatchup(batter, pitcher, envAdj) {
+    const { batterSplit, pitcherSplit } = pickSplits(batter, pitcher);
+    const avg = (a, b) => ((a ?? 0) + (b ?? 0)) / 2;
+
+    const ob = avg(batterSplit.ob, pitcherSplit.ob);
+    const h = avg(batterSplit.h, pitcherSplit.h);
+    const hr = avg(batterSplit.hr, pitcherSplit.hr);
+    let tb = avg(batterSplit.tb, pitcherSplit.tb);
+
+    // ---- Ballpark / Weather adjustment block -------------------------------
+    // Wind Out nudges home-run weight up, Wind In nudges it down; the manual
+    // ballpark BPS/BPHR adjustment fields add or subtract directly. Both feed
+    // into a small bump on the blended Total-Bases figure used for "power".
+    let bphrAdj = envAdj.bphrAdj || 0;
+    if (envAdj.weather === "Wind Out") bphrAdj += 2;
+    else if (envAdj.weather === "Wind In") bphrAdj -= 2;
+    const bpsAdj = envAdj.bpsAdj || 0;
+    const bps = avg(batterSplit.bps, pitcherSplit.bps) + bpsAdj;
+    const bphr = avg(batterSplit.bphr, pitcherSplit.bphr) + bphrAdj;
+    tb = tb + bps * 0.1 + bphr * 0.1;
+    // -------------------------------------------------------------------------
+
+    const dp = avg(batterSplit.dp, pitcherSplit.dp);
+    const cl = batterSplit.cl ?? 0;
+    const ops = ob + tb;
+    return { ob, tb, h, hr, dp, cl, ops };
+  }
+
+  function parseStealingNum(raw) {
+    const n = Number(String(raw || "").replace(/[^0-9.-]/g, ""));
+    return isNaN(n) ? 0 : n;
+  }
+
+  function defenseScoreFor(player, posCode) {
+    const entry = entryForPosition(player, posCode);
+    if (!entry || entry.range === null || entry.error === null) return -999; // no rating -> least defensively trusted
+    return entry.range - entry.error;
+  }
+
+  // --------------------------------------------------------------------------
+  // POSITION ASSIGNMENT — one distinct eligible Majors-status hitter per
+  // required field position. Positions with fewer eligible candidates are
+  // filled first (scarcest-first) so a versatile bat doesn't get locked into
+  // a spot a specialist badly needed. A position with zero eligible
+  // candidates gets the best remaining unassigned player as an emergency fill.
+  // --------------------------------------------------------------------------
+  function assignPositions(eligibleHitters, matchups) {
+    const positions = ["C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH"];
+    const remaining = new Set(eligibleHitters.map(p => p.id));
+    const byId = new Map(eligibleHitters.map(p => [p.id, p]));
+    const candidatesFor = {};
+    positions.forEach(pos => {
+      candidatesFor[pos] = eligibleHitters.filter(p => eligiblePositions(p).includes(pos));
+    });
+
+    const order = positions.slice().sort((a, b) => candidatesFor[a].length - candidatesFor[b].length);
+    const assignment = {}; // pos -> player
+
+    order.forEach(pos => {
+      let pool = candidatesFor[pos].filter(p => remaining.has(p.id));
+      if (pool.length === 0) pool = eligibleHitters.filter(p => remaining.has(p.id)); // emergency fill
+      if (pool.length === 0) return;
+      pool.sort((a, b) => matchups.get(b.id).ops - matchups.get(a.id).ops);
+      const chosen = pool[0];
+      assignment[pos] = chosen;
+      remaining.delete(chosen.id);
+    });
+
+    return assignment; // { posCode: player }
+  }
+
+  // --------------------------------------------------------------------------
+  // 1-through-9 BATTING ORDER SOLVER. The defensive specialist for #9 is
+  // chosen FIRST (best defensive rating at their assigned position) and
+  // removed from the pool, so the remaining role picks (#1-#8) never have to
+  // "fight" the #9 rule — each role then picks the best fit from whoever's
+  // left, one at a time, in the order below.
+  // --------------------------------------------------------------------------
+  function buildBattingOrder(assignment, matchups) {
+    const entries = Object.entries(assignment).map(([pos, player]) => ({ pos, player }));
+    let pool = entries.slice();
+    const slots = new Array(9);
+
+    function take(index, chooser, badge) {
+      if (pool.length === 0) return;
+      pool.sort((a, b) => chooser(b) - chooser(a));
+      const picked = pool[0];
+      pool = pool.filter(e => e !== picked);
+      slots[index] = { ...picked, badge };
+    }
+
+    // #9 first: best defensive rating at their own assigned position wins.
+    take(8, (e) => defenseScoreFor(e.player, e.pos), "Defensive Specialist");
+
+    // #1 Leadoff: speed + stealing + on-base.
+    take(0, (e) => (e.player.speed ?? 0) + parseStealingNum(e.player.stealing) + matchups.get(e.player.id).ob, "Leadoff: Speed & OB");
+
+    // #2: lowest double-play split, highest on-base.
+    take(1, (e) => matchups.get(e.player.id).ob - matchups.get(e.player.id).dp, "Contact & Low DP");
+
+    // #3: best all-around matchup OPS.
+    take(2, (e) => matchups.get(e.player.id).ops, "Best Matchup OPS");
+
+    // #4 Cleanup: highest matchup Total Bases (power).
+    take(3, (e) => matchups.get(e.player.id).tb, "Cleanup: Power/TB");
+
+    // #5: highest Clutch rating; falls back to OPS if nobody is clutch-rated.
+    const anyClutch = pool.some(e => (matchups.get(e.player.id).cl || 0) > 0);
+    take(4, (e) => anyClutch ? (matchups.get(e.player.id).cl || 0) : matchups.get(e.player.id).ops, "Clutch Weapon");
+
+    // #6: best pure contact (hits) split.
+    take(5, (e) => matchups.get(e.player.id).h, "Stabilizer: Contact");
+
+    // #7 & #8: whoever's left, best matchup OPS first.
+    take(6, (e) => matchups.get(e.player.id).ops, "Lineup Depth");
+    take(7, (e) => matchups.get(e.player.id).ops, "Lineup Depth");
+
+    return slots;
+  }
+
+  function renderLineupResult(slots, opponentPitcher, myTeam) {
+    lineupResultMeta.textContent = `${myTeam} vs ${opponentPitcher.name} (${opponentPitcher.throwsHand}), ${opponentPitcher.jhmlTeam}`;
+    lineupResultSlots.innerHTML = slots.map((slot, i) => {
+      if (!slot) {
+        return `<div class="lineup-slot-card"><span class="lineup-slot-num">${i + 1}</span><span style="color: var(--ink-soft);">No eligible player left to fill this spot.</span></div>`;
+      }
+      const p = slot.player;
+      const ops = matchupCache.get(p.id).ops.toFixed(2);
+      return `
+        <div class="lineup-slot-card">
+          <span class="lineup-slot-num">${i + 1}</span>
+          <div class="flex-1 min-w-0">
+            <div class="font-medium">${escapeHtml(p.name)} <span class="font-mono text-[11px]">(Bat: ${p.bats[0]})</span></div>
+            <div class="text-[11px] font-mono" style="color: var(--ink-soft);">${positionLabel(slot.pos)} · Matchup OPS ${ops}</div>
+          </div>
+          <span class="lineup-slot-badge">[${slot.badge}]</span>
+        </div>`;
+    }).join("");
+    lineupResultCard.classList.remove("hidden");
+  }
+
+  let matchupCache = new Map();
+
+  generateLineupBtn.addEventListener("click", () => {
+    lineupGenerateNote.textContent = "";
+    lineupResultCard.classList.add("hidden");
+
+    const myTeam = lineupTeamSelect.value;
+    const pitcherId = lineupOppPitcherSelect.value;
+    const pitcher = state.pitchers.find(p => p.id === pitcherId);
+    if (!myTeam || !pitcher) {
+      lineupGenerateNote.textContent = "Pick your team and an opposing pitcher first.";
+      return;
+    }
+
+    const eligible = state.hitters.filter(p => p.jhmlTeam === myTeam && p.status === "Majors");
+    if (eligible.length < 9) {
+      lineupGenerateNote.textContent = `Only ${eligible.length} Majors-eligible hitter(s) on this team — need at least 9 (check the Rosters tab for anyone marked Minors/Injured).`;
+      return;
+    }
+
+    const envAdj = {
+      bpsAdj: state.lineupPrefs.bpsAdj || 0,
+      bphrAdj: state.lineupPrefs.bphrAdj || 0,
+      weather: state.lineupPrefs.weather || "Fair",
+    };
+
+    matchupCache = new Map(eligible.map(p => [p.id, calcMatchup(p, pitcher, envAdj)]));
+
+    const assignment = assignPositions(eligible, matchupCache);
+    if (Object.keys(assignment).length < 9) {
+      lineupGenerateNote.textContent = "Couldn't fill all 9 field positions with the eligible hitters available.";
+      return;
+    }
+
+    const slots = buildBattingOrder(assignment, matchupCache);
+    renderLineupResult(slots, pitcher, myTeam);
   });
 
   // ---------- INIT ----------
