@@ -101,6 +101,17 @@
     outline-offset: 2px;
   }
 
+  .cardview-btn {
+    color: var(--ink-soft);
+    border-bottom: 3px solid transparent;
+    padding-bottom: .45rem;
+  }
+  .cardview-btn.active {
+    color: var(--ink);
+    border-bottom: 3px solid var(--accent);
+    font-weight: 600;
+  }
+
   .card-panel {
     background: var(--card);
     border: 1px solid var(--border);
@@ -117,6 +128,8 @@
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
   .roster-row:hover { background: var(--bg-alt); }
+  .imported-row:hover { background: var(--bg-alt); }
+  .imported-row.selected { background: var(--green-soft); border-color: var(--green); }
 
   .drag-over {
     outline: 2px dashed var(--green);
@@ -151,6 +164,21 @@
     color: var(--chalk);
     border-color: var(--green);
   }
+
+  .file-btn {
+    background: var(--green);
+    color: var(--chalk);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+  }
+  .file-btn:hover { opacity: .92; }
+
+  .split-table th, .split-table td {
+    padding: 3px 6px;
+    text-align: right;
+  }
+  .split-table th:first-child, .split-table td:first-child { text-align: left; }
 
   @media (max-width: 640px) {
     .desk-only { display: none; }
@@ -249,54 +277,136 @@
 
   <!-- PLAYER CARDS TAB -->
   <section id="tab-cards" class="tab-panel hidden">
-    <div class="flex flex-wrap gap-3 mb-5">
-      <select id="card-team-select" class="field-input rounded px-3 py-2 text-sm"></select>
-      <select id="card-player-select" class="field-input rounded px-3 py-2 text-sm flex-1 min-w-[160px]"></select>
+
+    <div class="flex gap-5 mb-5 border-b" style="border-color: var(--border);">
+      <button class="cardview-btn active text-sm" data-cardview="roster">Roster Players</button>
+      <button class="cardview-btn text-sm" data-cardview="import">Imported Players (CSV)</button>
     </div>
 
-    <div id="card-empty-state" class="card-panel rounded-md p-10 text-center" style="color: var(--ink-soft);">
-      Pick a team and player to see their card.
+    <!-- Roster-based card viewer (Phase 1) -->
+    <div id="cardview-roster" class="cardview-panel">
+      <div class="flex flex-wrap gap-3 mb-5">
+        <select id="card-team-select" class="field-input rounded px-3 py-2 text-sm"></select>
+        <select id="card-player-select" class="field-input rounded px-3 py-2 text-sm flex-1 min-w-[160px]"></select>
+      </div>
+
+      <div id="card-empty-state" class="card-panel rounded-md p-10 text-center" style="color: var(--ink-soft);">
+        Pick a team and player to see their card.
+      </div>
+
+      <div id="player-card" class="player-card rounded-md overflow-hidden max-w-md mx-auto hidden">
+        <div class="px-5 py-4 flex items-center justify-between" style="background: var(--header-bg); color: var(--chalk);">
+          <div>
+            <div class="font-slab font-semibold text-xl leading-tight" id="pc-name">—</div>
+            <div class="text-xs font-mono" style="color: var(--accent);" id="pc-meta">—</div>
+          </div>
+          <div class="text-3xl font-slab font-bold" id="pc-pos">—</div>
+        </div>
+        <div class="p-5">
+          <div class="grid grid-cols-3 gap-2 text-center mb-4">
+            <div class="rating-box rounded py-2">
+              <div class="text-[11px]" style="color: var(--ink-soft);">AVG</div>
+              <div class="font-mono font-semibold text-lg" id="pc-avg">—</div>
+            </div>
+            <div class="rating-box rounded py-2">
+              <div class="text-[11px]" style="color: var(--ink-soft);">OBP</div>
+              <div class="font-mono font-semibold text-lg" id="pc-obp">—</div>
+            </div>
+            <div class="rating-box rounded py-2">
+              <div class="text-[11px]" style="color: var(--ink-soft);">SLG</div>
+              <div class="font-mono font-semibold text-lg" id="pc-slg">—</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-center mb-4">
+            <div class="rating-box rounded py-2">
+              <div class="text-[11px]" style="color: var(--ink-soft);">HR</div>
+              <div class="font-mono font-semibold text-lg" id="pc-hr">—</div>
+            </div>
+            <div class="rating-box rounded py-2">
+              <div class="text-[11px]" style="color: var(--ink-soft);">RBI</div>
+              <div class="font-mono font-semibold text-lg" id="pc-rbi">—</div>
+            </div>
+          </div>
+          <div class="stitch-border pt-3 flex justify-between text-sm">
+            <div><span style="color: var(--ink-soft);">Fielding</span> <span class="font-mono font-semibold" id="pc-fielding">—</span></div>
+            <div><span style="color: var(--ink-soft);">Speed</span> <span class="font-mono font-semibold" id="pc-speed">—</span></div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div id="player-card" class="player-card rounded-md overflow-hidden max-w-md mx-auto hidden">
-      <div class="px-5 py-4 flex items-center justify-between" style="background: var(--header-bg); color: var(--chalk);">
+    <!-- CSV-imported Strat-O-Matic card viewer (Phase 2) -->
+    <div id="cardview-import" class="cardview-panel hidden">
+
+      <div class="card-panel rounded-md p-4 mb-5">
+        <div class="flex flex-wrap items-center gap-3">
+          <label class="file-btn px-3 py-1.5 rounded text-sm font-medium">
+            Import CSV
+            <input type="file" id="csv-file-input" accept=".csv,text/csv" class="hidden">
+          </label>
+          <button id="clear-imported-btn" class="px-3 py-1.5 rounded text-sm" style="border: 1px solid var(--border);">Clear imported players</button>
+          <span id="import-status" class="text-xs font-mono" style="color: var(--ink-soft);"></span>
+        </div>
+        <p class="text-xs mt-3 leading-relaxed" style="color: var(--ink-soft);">
+          Importing a file replaces the current imported list. The first row must be column headers.
+          Include a <strong>Name</strong> column, and optionally <strong>Position</strong>, <strong>Bats</strong>, <strong>Throws</strong>.
+          For each split, label columns with <strong>LHP</strong> or <strong>RHP</strong> plus the stat: Strikeouts (SO), Walks (BB), Hits (H), On Base (OB), Total Bases (TB), Home Runs (HR), BP (Ballpark), Clutch (CL), Double Play (DP) —
+          e.g. "LHP SO", "RHP_HR", "SO vs LHP" all work.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-[260px_1fr] gap-5">
+        <div class="card-panel rounded-md p-3">
+          <h2 class="font-slab font-semibold text-sm mb-2">Imported players</h2>
+          <input id="imported-search" type="text" placeholder="Search by name…" class="field-input rounded px-2 py-1.5 text-sm w-full mb-2">
+          <div id="imported-list" class="flex flex-col gap-1 max-h-[420px] overflow-y-auto"></div>
+        </div>
+
         <div>
-          <div class="font-slab font-semibold text-xl leading-tight" id="pc-name">—</div>
-          <div class="text-xs font-mono" style="color: var(--accent);" id="pc-meta">—</div>
-        </div>
-        <div class="text-3xl font-slab font-bold" id="pc-pos">—</div>
-      </div>
-      <div class="p-5">
-        <div class="grid grid-cols-3 gap-2 text-center mb-4">
-          <div class="rating-box rounded py-2">
-            <div class="text-[11px]" style="color: var(--ink-soft);">AVG</div>
-            <div class="font-mono font-semibold text-lg" id="pc-avg">—</div>
+          <div id="imported-empty-state" class="card-panel rounded-md p-10 text-center" style="color: var(--ink-soft);">
+            Import a CSV, then select a player to see their ratings.
           </div>
-          <div class="rating-box rounded py-2">
-            <div class="text-[11px]" style="color: var(--ink-soft);">OBP</div>
-            <div class="font-mono font-semibold text-lg" id="pc-obp">—</div>
+
+          <div id="imported-player-card" class="player-card rounded-md overflow-hidden hidden">
+            <div class="px-5 py-4 flex items-center justify-between" style="background: var(--header-bg); color: var(--chalk);">
+              <div>
+                <div class="font-slab font-semibold text-xl leading-tight" id="ip-name">—</div>
+                <div class="text-xs font-mono" style="color: var(--accent);" id="ip-meta">—</div>
+              </div>
+              <div class="text-3xl font-slab font-bold" id="ip-pos">—</div>
+            </div>
+
+            <div class="p-5">
+              <table class="w-full text-sm split-table mb-4">
+                <thead>
+                  <tr style="color: var(--ink-soft); border-bottom: 1px solid var(--border);">
+                    <th class="font-medium">Rating</th>
+                    <th class="font-medium font-mono">vs LHP</th>
+                    <th class="font-medium font-mono">vs RHP</th>
+                  </tr>
+                </thead>
+                <tbody id="ip-split-table"></tbody>
+              </table>
+
+              <div class="stitch-border pt-3">
+                <div class="text-[11px] mb-2" style="color: var(--ink-soft);">Ballpark-adjusted (from your formulas)</div>
+                <div class="grid grid-cols-2 gap-2 text-center">
+                  <div class="rating-box rounded py-2">
+                    <div class="text-[11px]" style="color: var(--ink-soft);">BPS (Ballpark Singles)</div>
+                    <div class="font-mono font-semibold text-lg" id="ip-bps">—</div>
+                  </div>
+                  <div class="rating-box rounded py-2">
+                    <div class="text-[11px]" style="color: var(--ink-soft);">BPHR (Ballpark HR)</div>
+                    <div class="font-mono font-semibold text-lg" id="ip-bphr">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="rating-box rounded py-2">
-            <div class="text-[11px]" style="color: var(--ink-soft);">SLG</div>
-            <div class="font-mono font-semibold text-lg" id="pc-slg">—</div>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-2 text-center mb-4">
-          <div class="rating-box rounded py-2">
-            <div class="text-[11px]" style="color: var(--ink-soft);">HR</div>
-            <div class="font-mono font-semibold text-lg" id="pc-hr">—</div>
-          </div>
-          <div class="rating-box rounded py-2">
-            <div class="text-[11px]" style="color: var(--ink-soft);">RBI</div>
-            <div class="font-mono font-semibold text-lg" id="pc-rbi">—</div>
-          </div>
-        </div>
-        <div class="stitch-border pt-3 flex justify-between text-sm">
-          <div><span style="color: var(--ink-soft);">Fielding</span> <span class="font-mono font-semibold" id="pc-fielding">—</span></div>
-          <div><span style="color: var(--ink-soft);">Speed</span> <span class="font-mono font-semibold" id="pc-speed">—</span></div>
         </div>
       </div>
     </div>
+
   </section>
 
   <!-- LINEUP OPTIMIZER TAB -->
@@ -358,9 +468,11 @@
       if (!raw) throw new Error("empty");
       const parsed = JSON.parse(raw);
       if (!parsed.teams) throw new Error("bad shape");
+      parsed.importedPlayers = parsed.importedPlayers || [];
+      parsed.lineups = parsed.lineups || {};
       return parsed;
     } catch (e) {
-      return { teams: [], lineups: {} };
+      return { teams: [], lineups: {}, importedPlayers: [] };
     }
   }
 
@@ -377,6 +489,7 @@
   let cardTeamId = state.teams[0]?.id || null;
   let cardPlayerId = null;
   let lineupTeamId = state.teams[0]?.id || null;
+  let selectedImportedId = null;
 
   function uid() {
     return Math.random().toString(36).slice(2, 10);
@@ -397,6 +510,16 @@
     return n.toFixed(3).replace(/^0\./, ".");
   }
 
+  function fmtNum(v) {
+    return (v === null || v === undefined || v === "") ? "—" : v;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str ?? "";
+    return div.innerHTML;
+  }
+
   // ---------- TABS ----------
   const tabButtons = document.querySelectorAll(".tab-btn");
   const tabPanels = {
@@ -412,7 +535,7 @@
       Object.entries(tabPanels).forEach(([key, panel]) => {
         panel.classList.toggle("hidden", key !== btn.dataset.tab);
       });
-      if (btn.dataset.tab === "cards") renderCardsTab();
+      if (btn.dataset.tab === "cards") { renderCardsTab(); renderImportedList(); }
       if (btn.dataset.tab === "lineup") renderLineupTab();
     });
   });
@@ -498,12 +621,6 @@
     });
   }
 
-  function escapeHtml(str) {
-    const div = document.createElement("div");
-    div.textContent = str ?? "";
-    return div.innerHTML;
-  }
-
   document.getElementById("add-team-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const input = document.getElementById("new-team-name");
@@ -553,7 +670,23 @@
     renderRoster();
   });
 
-  // ---------- PLAYER CARDS TAB ----------
+  // ---------- PLAYER CARDS TAB : sub-view toggle ----------
+  const cardViewButtons = document.querySelectorAll(".cardview-btn");
+  const cardViewPanels = {
+    roster: document.getElementById("cardview-roster"),
+    import: document.getElementById("cardview-import"),
+  };
+  cardViewButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      cardViewButtons.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      Object.entries(cardViewPanels).forEach(([key, panel]) => {
+        panel.classList.toggle("hidden", key !== btn.dataset.cardview);
+      });
+    });
+  });
+
+  // ---------- PLAYER CARDS TAB : roster sub-view (Phase 1) ----------
   const cardTeamSelect = document.getElementById("card-team-select");
   const cardPlayerSelect = document.getElementById("card-player-select");
   const playerCardEl = document.getElementById("player-card");
@@ -632,6 +765,277 @@
     renderPlayerCard();
   });
 
+  // ==========================================================================
+  // PLAYER CARDS TAB : CSV import sub-view (Phase 2)
+  // ==========================================================================
+
+  // Canonical stat keys, in display order, matching the spreadsheet columns.
+  const STAT_FIELDS = [
+    { key: "so", label: "Strikeouts" },
+    { key: "bb", label: "Walks" },
+    { key: "h",  label: "Hits" },
+    { key: "ob", label: "On Base" },
+    { key: "tb", label: "Total Bases" },
+    { key: "hr", label: "Home Runs" },
+    { key: "bp", label: "BP (Ballpark)" },
+    { key: "cl", label: "Clutch" },
+    { key: "dp", label: "Double Play" },
+  ];
+
+  // Accepted header spellings for each stat, after normalizing (lowercase,
+  // letters/digits only). Add more aliases here if your spreadsheet uses
+  // different wording — no need to touch the parsing logic below.
+  const STAT_ALIASES = {
+    so: ["so", "k", "strikeouts", "strikeout"],
+    bb: ["bb", "walks", "walk", "baseonballs"],
+    h:  ["h", "hits", "hit"],
+    ob: ["ob", "onbase", "onb"],
+    tb: ["tb", "totalbases", "totalbase"],
+    hr: ["hr", "homeruns", "homerun"],
+    bp: ["bp", "ballpark"],
+    cl: ["cl", "clutch"],
+    dp: ["dp", "doubleplay", "doubleplays"],
+  };
+
+  function normalizeHeader(h) {
+    return (h || "").toLowerCase().replace(/vs\.?/g, "").replace(/[^a-z0-9]/g, "");
+  }
+
+  // Figures out what each CSV column represents by matching its header text.
+  // Returns a map of column index -> { kind: "name"|"position"|"bats"|"throws"|"stat", split, stat }
+  function buildColumnMap(headers) {
+    const map = {};
+    headers.forEach((raw, idx) => {
+      const norm = normalizeHeader(raw);
+      let split = null;
+      let rest = norm;
+
+      if (norm.includes("lhp")) { split = "lhp"; rest = norm.replace("lhp", ""); }
+      else if (norm.includes("rhp")) { split = "rhp"; rest = norm.replace("rhp", ""); }
+      else if (norm.includes("left")) { split = "lhp"; rest = norm.replace("left", ""); }
+      else if (norm.includes("right")) { split = "rhp"; rest = norm.replace("right", ""); }
+
+      if (split) {
+        const statKey = Object.keys(STAT_ALIASES).find(k => STAT_ALIASES[k].includes(rest));
+        if (statKey) { map[idx] = { kind: "stat", split, stat: statKey }; return; }
+      }
+
+      if (["name", "player", "playername"].includes(rest)) { map[idx] = { kind: "name" }; return; }
+      if (["pos", "position"].includes(rest)) { map[idx] = { kind: "position" }; return; }
+      if (["bats", "bat"].includes(rest)) { map[idx] = { kind: "bats" }; return; }
+      if (["throws", "throw"].includes(rest)) { map[idx] = { kind: "throws" }; return; }
+
+      map[idx] = null; // unrecognized column — ignored
+    });
+    return map;
+  }
+
+  // Minimal CSV parser: handles quoted fields, commas inside quotes, and
+  // escaped double-quotes ("" inside a quoted field).
+  function parseCSVText(text) {
+    const rows = [];
+    let row = [], field = "", inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQuotes) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i++; }
+          else { inQuotes = false; }
+        } else {
+          field += c;
+        }
+      } else {
+        if (c === '"') inQuotes = true;
+        else if (c === ",") { row.push(field); field = ""; }
+        else if (c === "\n") { row.push(field); rows.push(row); row = []; field = ""; }
+        else if (c === "\r") { /* skip */ }
+        else field += c;
+      }
+    }
+    if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+    return rows.filter(r => r.some(cell => cell.trim() !== ""));
+  }
+
+  function makeEmptySplit() {
+    return { so: null, bb: null, h: null, ob: null, tb: null, hr: null, bp: null, cl: null, dp: null };
+  }
+
+  function parsePlayersFromCSV(text) {
+    const rows = parseCSVText(text);
+    if (rows.length < 2) return { players: [], unmatchedHeaders: [], skipped: 0 };
+
+    const headers = rows[0];
+    const colMap = buildColumnMap(headers);
+    const unmatchedHeaders = headers.filter((h, idx) => colMap[idx] === null && h.trim() !== "");
+
+    const players = [];
+    let skipped = 0;
+
+    rows.slice(1).forEach(row => {
+      const player = {
+        id: uid(),
+        name: "",
+        position: "",
+        bats: "",
+        throws: "",
+        vsLHP: makeEmptySplit(),
+        vsRHP: makeEmptySplit(),
+      };
+
+      row.forEach((cell, idx) => {
+        const m = colMap[idx];
+        if (!m) return;
+        const v = (cell || "").trim();
+        if (m.kind === "name") player.name = v;
+        else if (m.kind === "position") player.position = v;
+        else if (m.kind === "bats") player.bats = v;
+        else if (m.kind === "throws") player.throws = v;
+        else if (m.kind === "stat") {
+          const target = m.split === "lhp" ? player.vsLHP : player.vsRHP;
+          const n = v === "" ? null : Number(v);
+          target[m.stat] = (n === null || isNaN(n)) ? null : n;
+        }
+      });
+
+      if (player.name) players.push(player);
+      else skipped++;
+    });
+
+    return { players, unmatchedHeaders, skipped };
+  }
+
+  const csvFileInput = document.getElementById("csv-file-input");
+  const importStatus = document.getElementById("import-status");
+  const clearImportedBtn = document.getElementById("clear-imported-btn");
+  const importedListEl = document.getElementById("imported-list");
+  const importedSearchInput = document.getElementById("imported-search");
+  const importedEmptyState = document.getElementById("imported-empty-state");
+  const importedPlayerCardEl = document.getElementById("imported-player-card");
+
+  csvFileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const { players, unmatchedHeaders, skipped } = parsePlayersFromCSV(String(reader.result));
+      state.importedPlayers = players;
+      selectedImportedId = players[0]?.id || null;
+      saveData();
+      renderImportedList();
+
+      let msg = `Imported ${players.length} player${players.length === 1 ? "" : "s"}.`;
+      if (skipped > 0) msg += ` Skipped ${skipped} row(s) with no name.`;
+      if (unmatchedHeaders.length > 0) msg += ` Unrecognized columns: ${unmatchedHeaders.join(", ")}.`;
+      importStatus.textContent = msg;
+    };
+    reader.onerror = () => { importStatus.textContent = "Could not read that file."; };
+    reader.readAsText(file);
+    csvFileInput.value = ""; // allow re-importing the same file name later
+  });
+
+  clearImportedBtn.addEventListener("click", () => {
+    state.importedPlayers = [];
+    selectedImportedId = null;
+    saveData();
+    importStatus.textContent = "Imported list cleared.";
+    renderImportedList();
+  });
+
+  importedSearchInput.addEventListener("input", () => renderImportedList());
+
+  function renderImportedList() {
+    const filter = importedSearchInput.value.trim().toLowerCase();
+    const players = state.importedPlayers.filter(p => !filter || p.name.toLowerCase().includes(filter));
+
+    importedListEl.innerHTML = "";
+    if (state.importedPlayers.length === 0) {
+      importedListEl.innerHTML = `<p class="text-sm" style="color: var(--ink-soft);">No players imported yet.</p>`;
+    } else if (players.length === 0) {
+      importedListEl.innerHTML = `<p class="text-sm" style="color: var(--ink-soft);">No players match "${escapeHtml(filter)}".</p>`;
+    }
+
+    players.forEach(p => {
+      const row = document.createElement("button");
+      row.className = "imported-row text-left px-2.5 py-2 rounded text-sm" + (p.id === selectedImportedId ? " selected" : "");
+      row.style.border = "1px solid var(--border)";
+      row.innerHTML = `${escapeHtml(p.name)} <span class="text-[11px]" style="color: var(--ink-soft);">${escapeHtml(p.position || "-")}</span>`;
+      row.addEventListener("click", () => {
+        selectedImportedId = p.id;
+        renderImportedList();
+        renderImportedPlayerCard();
+      });
+      importedListEl.appendChild(row);
+    });
+
+    if (!state.importedPlayers.find(p => p.id === selectedImportedId)) {
+      selectedImportedId = null;
+    }
+    renderImportedPlayerCard();
+  }
+
+  function renderImportedPlayerCard() {
+    const player = state.importedPlayers.find(p => p.id === selectedImportedId);
+    if (!player) {
+      importedPlayerCardEl.classList.add("hidden");
+      importedEmptyState.classList.remove("hidden");
+      return;
+    }
+    importedEmptyState.classList.add("hidden");
+    importedPlayerCardEl.classList.remove("hidden");
+
+    document.getElementById("ip-name").textContent = player.name;
+    document.getElementById("ip-meta").textContent = `B:${player.bats || "-"} T:${player.throws || "-"}`;
+    document.getElementById("ip-pos").textContent = player.position || "-";
+
+    const tbody = document.getElementById("ip-split-table");
+    tbody.innerHTML = STAT_FIELDS.map(f => `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td>${f.label}</td>
+        <td class="font-mono">${fmtNum(player.vsLHP[f.key])}</td>
+        <td class="font-mono">${fmtNum(player.vsRHP[f.key])}</td>
+      </tr>
+    `).join("");
+
+    const bps = calculateBPS(player);
+    const bphr = calculateBPHR(player);
+    document.getElementById("ip-bps").textContent = fmtNum(bps);
+    document.getElementById("ip-bphr").textContent = fmtNum(bphr);
+  }
+
+  // ==========================================================================
+  // PHASE 2 PLACEHOLDER — Ballpark-adjusted formulas
+  //
+  // Fill in your own Strat-O-Matic math in the two functions below. Each one
+  // receives a single imported player object, shaped like:
+  //   {
+  //     name, position, bats, throws,
+  //     vsLHP: { so, bb, h, ob, tb, hr, bp, cl, dp },
+  //     vsRHP: { so, bb, h, ob, tb, hr, bp, cl, dp }
+  //   }
+  // (all stat values are numbers or null if that cell was blank in the CSV)
+  //
+  // Return a number, and the card will display it automatically. Return
+  // null and the card shows "—" — that's what happens right now, since
+  // these are just placeholders.
+  //
+  // Nothing else in the file needs to change once you fill these in; the
+  // card calls these two functions every time it renders.
+  // ==========================================================================
+
+  function calculateBPS(player) {
+    // TODO: Ballpark Singles (BPS) formula goes here.
+    // Example inputs available: player.vsLHP.bp, player.vsRHP.bp,
+    // player.vsLHP.h, player.vsRHP.h, player.vsLHP.tb, player.vsRHP.tb, etc.
+    return null;
+  }
+
+  function calculateBPHR(player) {
+    // TODO: Ballpark Home Runs (BPHR) formula goes here.
+    // Example inputs available: player.vsLHP.bp, player.vsRHP.bp,
+    // player.vsLHP.hr, player.vsRHP.hr, etc.
+    return null;
+  }
+
   // ---------- LINEUP OPTIMIZER TAB ----------
   const lineupTeamSelect = document.getElementById("lineup-team-select");
   const benchListEl = document.getElementById("bench-list");
@@ -641,7 +1045,6 @@
 
   function getLineup(teamId) {
     if (!state.lineups[teamId]) state.lineups[teamId] = new Array(LINEUP_SIZE).fill(null);
-    // ensure length in case of legacy data
     while (state.lineups[teamId].length < LINEUP_SIZE) state.lineups[teamId].push(null);
     return state.lineups[teamId];
   }
@@ -672,7 +1075,6 @@
     const lineup = getLineup(lineupTeamId);
     const usedIds = new Set(lineup.filter(Boolean));
 
-    // Bench
     benchListEl.innerHTML = "";
     const bench = team.players.filter(p => !usedIds.has(p.id));
     if (bench.length === 0) {
@@ -694,7 +1096,6 @@
       benchListEl.appendChild(row);
     });
 
-    // Slots
     lineupSlotsEl.innerHTML = "";
     lineup.forEach((playerId, idx) => {
       const player = team.players.find(p => p.id === playerId);
@@ -741,7 +1142,6 @@
       });
     });
 
-    // Drag and drop reordering (desktop/trackpad friendly; touch users have arrow buttons)
     let dragIndex = null;
     lineupSlotsEl.querySelectorAll(".lineup-slot").forEach(slotEl => {
       slotEl.addEventListener("dragstart", () => { dragIndex = parseInt(slotEl.dataset.index); });
@@ -820,6 +1220,7 @@
   // ---------- INIT ----------
   renderTeamList();
   renderRoster();
+  renderImportedList();
 })();
 </script>
 </body>
