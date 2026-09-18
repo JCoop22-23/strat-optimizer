@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Diamond Office — League Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          slab: ['"Zilla Slab"', 'Georgia', 'serif'],
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  :root {
+    --bg: #EFE8D6;
+    --bg-alt: #E4DBC3;
+    --card: #FBF9F3;
+    --ink: #14213D;
+    --ink-soft: #55607A;
+    --border: #C9BFA0;
+    --header-bg: #0C2340;
+    --accent: #FA4616;
+    --green: #0C2340;
+    --green-soft: #DCE1E8;
+    --tan: #FA4616;
+    --red: #B33018;
+    --red-soft: #F3DEDA;
+    --chalk: #FBF9F3;
+    --focus: #14213D;
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --bg: #121A21;
+      --bg-alt: #182430;
+      --card: #1B2A3A;
+      --ink: #E7E9EE;
+      --ink-soft: #9AA5B6;
+      --border: #2E3F52;
+      --header-bg: #081627;
+      --accent: #FF6B3D;
+      --green: #1C3A5E;
+      --green-soft: #1E2C3D;
+      --tan: #FF6B3D;
+      --red: #E0654A;
+      --red-soft: #33221F;
+      --chalk: #E7E9EE;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121A21;
+    --bg-alt: #182430;
+    --card: #1B2A3A;
+    --ink: #E7E9EE;
+    --ink-soft: #9AA5B6;
+    --border: #2E3F52;
+    --header-bg: #081627;
+    --accent: #FF6B3D;
+    --green: #1C3A5E;
+    --green-soft: #1E2C3D;
+    --tan: #FF6B3D;
+    --red: #E0654A;
+    --red-soft: #33221F;
+    --chalk: #E7E9EE;
+  }
+
+  body { background: var(--bg); color: var(--ink); }
+
+  .stitch-border {
+    border-top: 2px dashed var(--tan);
+  }
+
+  .tab-btn {
+    position: relative;
+    color: rgba(251, 249, 243, 0.62);
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    border-radius: 6px 6px 0 0;
+  }
+  .tab-btn:hover {
+    color: rgba(251, 249, 243, 0.85);
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .tab-btn.active {
+    color: var(--chalk);
+    background: rgba(255, 255, 255, 0.1);
+    border-bottom: 3px solid var(--accent);
+  }
+  .tab-btn:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .card-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+  }
+
+  .field-input {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--ink);
+  }
+  .field-input::placeholder { color: var(--ink-soft); opacity: .7; }
+
+  ::-webkit-scrollbar { height: 8px; width: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .roster-row:hover { background: var(--bg-alt); }
+
+  .drag-over {
+    outline: 2px dashed var(--green);
+    outline-offset: -2px;
+  }
+
+  .player-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+  }
+  .player-card .rating-box {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+  }
+
+  .lineup-slot {
+    background: var(--card);
+    border: 1px solid var(--border);
+  }
+  .lineup-slot.empty {
+    background: transparent;
+    border: 1px dashed var(--border);
+    color: var(--ink-soft);
+  }
+
+  .team-chip {
+    border: 1px solid var(--border);
+    color: var(--ink-soft);
+  }
+  .team-chip.active {
+    background: var(--green);
+    color: var(--chalk);
+    border-color: var(--green);
+  }
+
+  @media (max-width: 640px) {
+    .desk-only { display: none; }
+  }
+</style>
+</head>
+<body class="font-sans min-h-screen">
+
+<!-- NAV -->
+<header class="sticky top-0 z-20" style="background: var(--header-bg); color: var(--chalk);">
+  <div class="max-w-6xl mx-auto px-4">
+    <div class="flex items-center justify-between h-14">
+      <div class="flex items-center gap-2">
+        <span class="text-xl leading-none">⚾</span>
+        <span class="font-slab font-semibold text-lg tracking-tight">Diamond Office</span>
+      </div>
+      <span class="text-xs font-mono desk-only" style="color: var(--accent);" id="league-name-display">DETROIT MOTORS</span>
+    </div>
+    <nav class="flex gap-1 overflow-x-auto -mb-px" role="tablist" aria-label="Main sections">
+      <button class="tab-btn active px-4 py-2.5 text-sm font-medium font-sans" data-tab="rosters" role="tab" aria-selected="true">Rosters</button>
+      <button class="tab-btn px-4 py-2.5 text-sm font-medium font-sans" data-tab="cards" role="tab" aria-selected="false">Player Cards</button>
+      <button class="tab-btn px-4 py-2.5 text-sm font-medium font-sans" data-tab="lineup" role="tab" aria-selected="false">Lineup Optimizer</button>
+    </nav>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 py-6 pb-16">
+
+  <!-- ROSTERS TAB -->
+  <section id="tab-rosters" class="tab-panel">
+    <div class="grid grid-cols-1 sm:grid-cols-[220px_1fr] gap-5">
+
+      <!-- Team list -->
+      <div class="card-panel rounded-md p-3 h-fit">
+        <h2 class="font-slab font-semibold text-sm mb-2 tracking-tight">Teams</h2>
+        <div id="team-list" class="flex sm:flex-col gap-2 overflow-x-auto sm:overflow-visible pb-1"></div>
+        <form id="add-team-form" class="mt-3 flex gap-2">
+          <input id="new-team-name" type="text" placeholder="New team name" class="field-input flex-1 min-w-0 rounded px-2 py-1.5 text-sm" required>
+          <button type="submit" class="px-3 py-1.5 rounded text-sm font-medium" style="background: var(--green); color: var(--chalk);">Add</button>
+        </form>
+      </div>
+
+      <!-- Roster table -->
+      <div class="card-panel rounded-md p-4">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h2 class="font-slab font-semibold text-lg" id="roster-team-title">Select a team</h2>
+          <button id="toggle-add-player" class="px-3 py-1.5 rounded text-sm font-medium" style="background: var(--red); color: var(--chalk);">+ Add player</button>
+        </div>
+
+        <form id="add-player-form" class="hidden grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 p-3 rounded stitch-border" style="background: var(--bg-alt);">
+          <input name="name" placeholder="Name" class="field-input rounded px-2 py-1.5 text-sm col-span-2 sm:col-span-1" required>
+          <select name="position" class="field-input rounded px-2 py-1.5 text-sm">
+            <option>C</option><option>1B</option><option>2B</option><option>3B</option><option>SS</option>
+            <option>LF</option><option>CF</option><option>RF</option><option>DH</option><option>P</option>
+          </select>
+          <select name="bats" class="field-input rounded px-2 py-1.5 text-sm">
+            <option value="L">Bats L</option><option value="R">Bats R</option><option value="S">Switch</option>
+          </select>
+          <select name="throws" class="field-input rounded px-2 py-1.5 text-sm">
+            <option value="R">Throws R</option><option value="L">Throws L</option>
+          </select>
+          <input name="avg" placeholder="AVG" class="field-input rounded px-2 py-1.5 text-sm font-mono" inputmode="decimal">
+          <input name="obp" placeholder="OBP" class="field-input rounded px-2 py-1.5 text-sm font-mono" inputmode="decimal">
+          <input name="slg" placeholder="SLG" class="field-input rounded px-2 py-1.5 text-sm font-mono" inputmode="decimal">
+          <input name="hr" placeholder="HR" class="field-input rounded px-2 py-1.5 text-sm font-mono" inputmode="numeric">
+          <input name="rbi" placeholder="RBI" class="field-input rounded px-2 py-1.5 text-sm font-mono" inputmode="numeric">
+          <input name="fielding" placeholder="Fielding (e.g. 1)" class="field-input rounded px-2 py-1.5 text-sm font-mono">
+          <input name="speed" placeholder="Speed (e.g. A)" class="field-input rounded px-2 py-1.5 text-sm font-mono">
+          <div class="col-span-2 sm:col-span-4 flex gap-2 justify-end mt-1">
+            <button type="button" id="cancel-add-player" class="px-3 py-1.5 rounded text-sm" style="border: 1px solid var(--border);">Cancel</button>
+            <button type="submit" class="px-3 py-1.5 rounded text-sm font-medium" style="background: var(--green); color: var(--chalk);">Save player</button>
+          </div>
+        </form>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm" id="roster-table">
+            <thead>
+              <tr class="text-left" style="color: var(--ink-soft); border-bottom: 1px solid var(--border);">
+                <th class="py-1.5 pr-2 font-medium">Player</th>
+                <th class="py-1.5 pr-2 font-medium">Pos</th>
+                <th class="py-1.5 pr-2 font-medium font-mono">AVG</th>
+                <th class="py-1.5 pr-2 font-medium font-mono">OBP</th>
+                <th class="py-1.5 pr-2 font-medium font-mono">SLG</th>
+                <th class="py-1.5 pr-2 font-medium font-mono">HR</th>
+                <th class="py-1.5 pr-2 font-medium font-mono">RBI</th>
+                <th class="py-1.5 pr-2 font-medium"></th>
+              </tr>
+            </thead>
+            <tbody id="roster-tbody"></tbody>
+          </table>
+          <p id="roster-empty" class="text-sm py-6 text-center" style="color: var(--ink-soft);">No players yet. Add one above.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLAYER CARDS TAB -->
+  <section id="tab-cards" class="tab-panel hidden">
+    <div class="flex flex-wrap gap-3 mb-5">
+      <select id="card-team-select" class="field-input rounded px-3 py-2 text-sm"></select>
+      <select id="card-player-select" class="field-input rounded px-3 py-2 text-sm flex-1 min-w-[160px]"></select>
+    </div>
+
+    <div id="card-empty-state" class="card-panel rounded-md p-10 text-center" style="color: var(--ink-soft);">
+      Pick a team and player to see their card.
+    </div>
+
+    <div id="player-card" class="player-card rounded-md overflow-hidden max-w-md mx-auto hidden">
+      <div class="px-5 py-4 flex items-center justify-between" style="background: var(--header-bg); color: var(--chalk);">
+        <div>
+          <div class="font-slab font-semibold text-xl leading-tight" id="pc-name">—</div>
+          <div class="text-xs font-mono" style="color: var(--accent);" id="pc-meta">—</div>
+        </div>
+        <div class="text-3xl font-slab font-bold" id="pc-pos">—</div>
+      </div>
+      <div class="p-5">
+        <div class="grid grid-cols-3 gap-2 text-center mb-4">
+          <div class="rating-box rounded py-2">
+            <div class="text-[11px]" style="color: var(--ink-soft);">AVG</div>
+            <div class="font-mono font-semibold text-lg" id="pc-avg">—</div>
+          </div>
+          <div class="rating-box rounded py-2">
+            <div class="text-[11px]" style="color: var(--ink-soft);">OBP</div>
+            <div class="font-mono font-semibold text-lg" id="pc-obp">—</div>
+          </div>
+          <div class="rating-box rounded py-2">
+            <div class="text-[11px]" style="color: var(--ink-soft);">SLG</div>
+            <div class="font-mono font-semibold text-lg" id="pc-slg">—</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-center mb-4">
+          <div class="rating-box rounded py-2">
+            <div class="text-[11px]" style="color: var(--ink-soft);">HR</div>
+            <div class="font-mono font-semibold text-lg" id="pc-hr">—</div>
+          </div>
+          <div class="rating-box rounded py-2">
+            <div class="text-[11px]" style="color: var(--ink-soft);">RBI</div>
+            <div class="font-mono font-semibold text-lg" id="pc-rbi">—</div>
+          </div>
+        </div>
+        <div class="stitch-border pt-3 flex justify-between text-sm">
+          <div><span style="color: var(--ink-soft);">Fielding</span> <span class="font-mono font-semibold" id="pc-fielding">—</span></div>
+          <div><span style="color: var(--ink-soft);">Speed</span> <span class="font-mono font-semibold" id="pc-speed">—</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LINEUP OPTIMIZER TAB -->
+  <section id="tab-lineup" class="tab-panel hidden">
+    <div class="flex flex-wrap items-center gap-3 mb-4">
+      <select id="lineup-team-select" class="field-input rounded px-3 py-2 text-sm"></select>
+      <button id="auto-fill-btn" class="px-3 py-1.5 rounded text-sm font-medium" style="background: var(--green); color: var(--chalk);">Auto-fill by OPS</button>
+      <button id="clear-lineup-btn" class="px-3 py-1.5 rounded text-sm" style="border: 1px solid var(--border);">Clear order</button>
+      <span id="lineup-saved-note" class="text-xs font-mono ml-auto" style="color: var(--ink-soft);"></span>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-[1fr_1.3fr] gap-5">
+      <!-- Bench -->
+      <div class="card-panel rounded-md p-3">
+        <h2 class="font-slab font-semibold text-sm mb-2">Available players</h2>
+        <p class="text-xs mb-2" style="color: var(--ink-soft);">Tap a player to add them to the next open batting slot.</p>
+        <div id="bench-list" class="flex flex-col gap-1.5 max-h-[420px] overflow-y-auto"></div>
+      </div>
+
+      <!-- Batting order -->
+      <div class="card-panel rounded-md p-3">
+        <h2 class="font-slab font-semibold text-sm mb-2">Batting order</h2>
+        <p class="text-xs mb-2" style="color: var(--ink-soft);">Drag slots to reorder, or use the arrows on mobile.</p>
+        <div id="lineup-slots" class="flex flex-col gap-1.5"></div>
+
+        <div class="stitch-border mt-4 pt-3 grid grid-cols-3 gap-2 text-center">
+          <div>
+            <div class="text-[11px]" style="color: var(--ink-soft);">Lineup AVG</div>
+            <div class="font-mono font-semibold" id="sum-avg">—</div>
+          </div>
+          <div>
+            <div class="text-[11px]" style="color: var(--ink-soft);">Lineup OBP</div>
+            <div class="font-mono font-semibold" id="sum-obp">—</div>
+          </div>
+          <div>
+            <div class="text-[11px]" style="color: var(--ink-soft);">Lineup SLG</div>
+            <div class="font-mono font-semibold" id="sum-slg">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="max-w-6xl mx-auto px-4 pb-8 text-xs" style="color: var(--ink-soft);">
+  Everything here is saved in this browser only — clearing site data will erase it.
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  const STORAGE_KEY = "somLeagueManagerData";
+
+  function loadData() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) throw new Error("empty");
+      const parsed = JSON.parse(raw);
+      if (!parsed.teams) throw new Error("bad shape");
+      return parsed;
+    } catch (e) {
+      return { teams: [], lineups: {} };
+    }
+  }
+
+  function saveData() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.error("Could not save to localStorage:", e);
+    }
+  }
+
+  let state = loadData();
+  let selectedTeamId = state.teams[0]?.id || null;
+  let cardTeamId = state.teams[0]?.id || null;
+  let cardPlayerId = null;
+  let lineupTeamId = state.teams[0]?.id || null;
+
+  function uid() {
+    return Math.random().toString(36).slice(2, 10);
+  }
+
+  function getTeam(id) {
+    return state.teams.find(t => t.id === id) || null;
+  }
+
+  function num(v) {
+    const n = parseFloat(v);
+    return isNaN(n) ? null : n;
+  }
+
+  function fmt3(v) {
+    if (v === null || v === undefined || v === "" || isNaN(v)) return "—";
+    const n = parseFloat(v);
+    return n.toFixed(3).replace(/^0\./, ".");
+  }
+
+  // ---------- TABS ----------
+  const tabButtons = document.querySelectorAll(".tab-btn");
+  const tabPanels = {
+    rosters: document.getElementById("tab-rosters"),
+    cards: document.getElementById("tab-cards"),
+    lineup: document.getElementById("tab-lineup"),
+  };
+  tabButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      tabButtons.forEach(b => { b.classList.remove("active"); b.setAttribute("aria-selected", "false"); });
+      btn.classList.add("active");
+      btn.setAttribute("aria-selected", "true");
+      Object.entries(tabPanels).forEach(([key, panel]) => {
+        panel.classList.toggle("hidden", key !== btn.dataset.tab);
+      });
+      if (btn.dataset.tab === "cards") renderCardsTab();
+      if (btn.dataset.tab === "lineup") renderLineupTab();
+    });
+  });
+
+  // ---------- ROSTERS TAB ----------
+  const teamListEl = document.getElementById("team-list");
+  const rosterTitleEl = document.getElementById("roster-team-title");
+  const rosterTbody = document.getElementById("roster-tbody");
+  const rosterEmpty = document.getElementById("roster-empty");
+  const addPlayerForm = document.getElementById("add-player-form");
+  const toggleAddPlayerBtn = document.getElementById("toggle-add-player");
+  const cancelAddPlayerBtn = document.getElementById("cancel-add-player");
+
+  function renderTeamList() {
+    teamListEl.innerHTML = "";
+    if (state.teams.length === 0) {
+      const p = document.createElement("p");
+      p.className = "text-sm";
+      p.style.color = "var(--ink-soft)";
+      p.textContent = "No teams yet.";
+      teamListEl.appendChild(p);
+    }
+    state.teams.forEach(team => {
+      const chip = document.createElement("button");
+      chip.className = "team-chip rounded-full px-3 py-1.5 text-sm text-left font-medium" + (team.id === selectedTeamId ? " active" : "");
+      chip.textContent = team.name;
+      chip.addEventListener("click", () => {
+        selectedTeamId = team.id;
+        renderTeamList();
+        renderRoster();
+      });
+      teamListEl.appendChild(chip);
+    });
+  }
+
+  function renderRoster() {
+    const team = getTeam(selectedTeamId);
+    rosterTitleEl.textContent = team ? team.name : "Select a team";
+    rosterTbody.innerHTML = "";
+    toggleAddPlayerBtn.classList.toggle("hidden", !team);
+
+    if (!team) {
+      rosterEmpty.textContent = "Add a team on the left to get started.";
+      rosterEmpty.classList.remove("hidden");
+      return;
+    }
+    if (team.players.length === 0) {
+      rosterEmpty.textContent = "No players yet. Add one above.";
+      rosterEmpty.classList.remove("hidden");
+      return;
+    }
+    rosterEmpty.classList.add("hidden");
+
+    team.players.forEach(p => {
+      const tr = document.createElement("tr");
+      tr.className = "roster-row";
+      tr.style.borderBottom = "1px solid var(--border)";
+      tr.innerHTML = `
+        <td class="py-1.5 pr-2">
+          <div class="font-medium">${escapeHtml(p.name)}</div>
+          <div class="text-[11px] font-mono" style="color: var(--ink-soft);">B:${p.bats || "-"} T:${p.throws || "-"}</div>
+        </td>
+        <td class="py-1.5 pr-2">${escapeHtml(p.position || "-")}</td>
+        <td class="py-1.5 pr-2 font-mono">${fmt3(p.avg)}</td>
+        <td class="py-1.5 pr-2 font-mono">${fmt3(p.obp)}</td>
+        <td class="py-1.5 pr-2 font-mono">${fmt3(p.slg)}</td>
+        <td class="py-1.5 pr-2 font-mono">${p.hr ?? "—"}</td>
+        <td class="py-1.5 pr-2 font-mono">${p.rbi ?? "—"}</td>
+        <td class="py-1.5 pr-2 text-right">
+          <button data-id="${p.id}" class="delete-player-btn text-xs px-2 py-1 rounded" style="color: var(--red);">Remove</button>
+        </td>
+      `;
+      rosterTbody.appendChild(tr);
+    });
+
+    rosterTbody.querySelectorAll(".delete-player-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const team = getTeam(selectedTeamId);
+        team.players = team.players.filter(pl => pl.id !== btn.dataset.id);
+        saveData();
+        renderRoster();
+      });
+    });
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str ?? "";
+    return div.innerHTML;
+  }
+
+  document.getElementById("add-team-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input = document.getElementById("new-team-name");
+    const name = input.value.trim();
+    if (!name) return;
+    const team = { id: uid(), name, players: [] };
+    state.teams.push(team);
+    selectedTeamId = team.id;
+    input.value = "";
+    saveData();
+    renderTeamList();
+    renderRoster();
+  });
+
+  toggleAddPlayerBtn.addEventListener("click", () => {
+    addPlayerForm.classList.toggle("hidden");
+  });
+  cancelAddPlayerBtn.addEventListener("click", () => {
+    addPlayerForm.classList.add("hidden");
+    addPlayerForm.reset();
+  });
+
+  addPlayerForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const team = getTeam(selectedTeamId);
+    if (!team) return;
+    const fd = new FormData(addPlayerForm);
+    const player = {
+      id: uid(),
+      name: fd.get("name").trim(),
+      position: fd.get("position"),
+      bats: fd.get("bats"),
+      throws: fd.get("throws"),
+      avg: num(fd.get("avg")),
+      obp: num(fd.get("obp")),
+      slg: num(fd.get("slg")),
+      hr: num(fd.get("hr")),
+      rbi: num(fd.get("rbi")),
+      fielding: fd.get("fielding").trim(),
+      speed: fd.get("speed").trim(),
+    };
+    if (!player.name) return;
+    team.players.push(player);
+    saveData();
+    addPlayerForm.reset();
+    addPlayerForm.classList.add("hidden");
+    renderRoster();
+  });
+
+  // ---------- PLAYER CARDS TAB ----------
+  const cardTeamSelect = document.getElementById("card-team-select");
+  const cardPlayerSelect = document.getElementById("card-player-select");
+  const playerCardEl = document.getElementById("player-card");
+  const cardEmptyState = document.getElementById("card-empty-state");
+
+  function renderCardsTab() {
+    cardTeamSelect.innerHTML = "";
+    if (state.teams.length === 0) {
+      cardTeamSelect.innerHTML = `<option value="">No teams yet</option>`;
+      cardPlayerSelect.innerHTML = "";
+      showEmptyCard();
+      return;
+    }
+    state.teams.forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t.id;
+      opt.textContent = t.name;
+      cardTeamSelect.appendChild(opt);
+    });
+    if (!getTeam(cardTeamId)) cardTeamId = state.teams[0].id;
+    cardTeamSelect.value = cardTeamId;
+    renderCardPlayerOptions();
+  }
+
+  function renderCardPlayerOptions() {
+    const team = getTeam(cardTeamId);
+    cardPlayerSelect.innerHTML = "";
+    if (!team || team.players.length === 0) {
+      cardPlayerSelect.innerHTML = `<option value="">No players on this team</option>`;
+      showEmptyCard();
+      return;
+    }
+    team.players.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = `${p.name} (${p.position || "-"})`;
+      cardPlayerSelect.appendChild(opt);
+    });
+    if (!team.players.find(p => p.id === cardPlayerId)) {
+      cardPlayerId = team.players[0].id;
+    }
+    cardPlayerSelect.value = cardPlayerId;
+    renderPlayerCard();
+  }
+
+  function showEmptyCard() {
+    playerCardEl.classList.add("hidden");
+    cardEmptyState.classList.remove("hidden");
+  }
+
+  function renderPlayerCard() {
+    const team = getTeam(cardTeamId);
+    const player = team?.players.find(p => p.id === cardPlayerId);
+    if (!player) { showEmptyCard(); return; }
+    cardEmptyState.classList.add("hidden");
+    playerCardEl.classList.remove("hidden");
+    document.getElementById("pc-name").textContent = player.name;
+    document.getElementById("pc-meta").textContent = `${team.name} · B:${player.bats || "-"} T:${player.throws || "-"}`;
+    document.getElementById("pc-pos").textContent = player.position || "-";
+    document.getElementById("pc-avg").textContent = fmt3(player.avg);
+    document.getElementById("pc-obp").textContent = fmt3(player.obp);
+    document.getElementById("pc-slg").textContent = fmt3(player.slg);
+    document.getElementById("pc-hr").textContent = player.hr ?? "—";
+    document.getElementById("pc-rbi").textContent = player.rbi ?? "—";
+    document.getElementById("pc-fielding").textContent = player.fielding || "—";
+    document.getElementById("pc-speed").textContent = player.speed || "—";
+  }
+
+  cardTeamSelect.addEventListener("change", () => {
+    cardTeamId = cardTeamSelect.value;
+    cardPlayerId = null;
+    renderCardPlayerOptions();
+  });
+  cardPlayerSelect.addEventListener("change", () => {
+    cardPlayerId = cardPlayerSelect.value;
+    renderPlayerCard();
+  });
+
+  // ---------- LINEUP OPTIMIZER TAB ----------
+  const lineupTeamSelect = document.getElementById("lineup-team-select");
+  const benchListEl = document.getElementById("bench-list");
+  const lineupSlotsEl = document.getElementById("lineup-slots");
+  const savedNote = document.getElementById("lineup-saved-note");
+  const LINEUP_SIZE = 9;
+
+  function getLineup(teamId) {
+    if (!state.lineups[teamId]) state.lineups[teamId] = new Array(LINEUP_SIZE).fill(null);
+    // ensure length in case of legacy data
+    while (state.lineups[teamId].length < LINEUP_SIZE) state.lineups[teamId].push(null);
+    return state.lineups[teamId];
+  }
+
+  function renderLineupTab() {
+    lineupTeamSelect.innerHTML = "";
+    if (state.teams.length === 0) {
+      lineupTeamSelect.innerHTML = `<option value="">No teams yet</option>`;
+      benchListEl.innerHTML = "";
+      lineupSlotsEl.innerHTML = "";
+      updateLineupSummary(null);
+      return;
+    }
+    state.teams.forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t.id;
+      opt.textContent = t.name;
+      lineupTeamSelect.appendChild(opt);
+    });
+    if (!getTeam(lineupTeamId)) lineupTeamId = state.teams[0].id;
+    lineupTeamSelect.value = lineupTeamId;
+    renderBenchAndSlots();
+  }
+
+  function renderBenchAndSlots() {
+    const team = getTeam(lineupTeamId);
+    if (!team) return;
+    const lineup = getLineup(lineupTeamId);
+    const usedIds = new Set(lineup.filter(Boolean));
+
+    // Bench
+    benchListEl.innerHTML = "";
+    const bench = team.players.filter(p => !usedIds.has(p.id));
+    if (bench.length === 0) {
+      benchListEl.innerHTML = `<p class="text-sm" style="color: var(--ink-soft);">${team.players.length === 0 ? "This team has no players yet." : "Everyone is in the order."}</p>`;
+    }
+    bench.forEach(p => {
+      const row = document.createElement("button");
+      row.className = "text-left px-2.5 py-2 rounded text-sm flex justify-between items-center gap-2";
+      row.style.border = "1px solid var(--border)";
+      row.innerHTML = `<span>${escapeHtml(p.name)} <span class="text-[11px]" style="color: var(--ink-soft);">${escapeHtml(p.position || "-")}</span></span>
+        <span class="font-mono text-[11px]" style="color: var(--ink-soft);">OPS ${opsOf(p)}</span>`;
+      row.addEventListener("click", () => {
+        const idx = lineup.findIndex(x => x === null);
+        if (idx === -1) return;
+        lineup[idx] = p.id;
+        saveData();
+        renderBenchAndSlots();
+      });
+      benchListEl.appendChild(row);
+    });
+
+    // Slots
+    lineupSlotsEl.innerHTML = "";
+    lineup.forEach((playerId, idx) => {
+      const player = team.players.find(p => p.id === playerId);
+      const slot = document.createElement("div");
+      slot.className = "lineup-slot rounded px-2.5 py-2 flex items-center gap-2 text-sm" + (!player ? " empty" : "");
+      slot.draggable = !!player;
+      slot.dataset.index = idx;
+
+      const numEl = `<span class="font-slab font-semibold w-5 text-center">${idx + 1}</span>`;
+      if (player) {
+        slot.innerHTML = `
+          ${numEl}
+          <span class="flex-1 truncate">${escapeHtml(player.name)} <span class="text-[11px]" style="color: var(--ink-soft);">${escapeHtml(player.position || "-")}</span></span>
+          <span class="font-mono text-[11px]" style="color: var(--ink-soft);">OPS ${opsOf(player)}</span>
+          <button class="remove-slot-btn text-xs px-1.5" style="color: var(--red);" data-index="${idx}" aria-label="Remove from lineup">✕</button>
+          <span class="flex flex-col leading-none desk-only">
+            <button class="move-up-btn text-[10px] px-1" data-index="${idx}" aria-label="Move up">▲</button>
+            <button class="move-down-btn text-[10px] px-1" data-index="${idx}" aria-label="Move down">▼</button>
+          </span>
+        `;
+      } else {
+        slot.innerHTML = `${numEl}<span class="flex-1">Empty — tap a bench player to fill</span>`;
+      }
+      lineupSlotsEl.appendChild(slot);
+    });
+
+    lineupSlotsEl.querySelectorAll(".remove-slot-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        lineup[parseInt(btn.dataset.index)] = null;
+        saveData();
+        renderBenchAndSlots();
+      });
+    });
+    lineupSlotsEl.querySelectorAll(".move-up-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const i = parseInt(btn.dataset.index);
+        if (i > 0) { [lineup[i - 1], lineup[i]] = [lineup[i], lineup[i - 1]]; saveData(); renderBenchAndSlots(); }
+      });
+    });
+    lineupSlotsEl.querySelectorAll(".move-down-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const i = parseInt(btn.dataset.index);
+        if (i < lineup.length - 1) { [lineup[i + 1], lineup[i]] = [lineup[i], lineup[i + 1]]; saveData(); renderBenchAndSlots(); }
+      });
+    });
+
+    // Drag and drop reordering (desktop/trackpad friendly; touch users have arrow buttons)
+    let dragIndex = null;
+    lineupSlotsEl.querySelectorAll(".lineup-slot").forEach(slotEl => {
+      slotEl.addEventListener("dragstart", () => { dragIndex = parseInt(slotEl.dataset.index); });
+      slotEl.addEventListener("dragover", (e) => { e.preventDefault(); slotEl.classList.add("drag-over"); });
+      slotEl.addEventListener("dragleave", () => slotEl.classList.remove("drag-over"));
+      slotEl.addEventListener("drop", (e) => {
+        e.preventDefault();
+        slotEl.classList.remove("drag-over");
+        const dropIndex = parseInt(slotEl.dataset.index);
+        if (dragIndex === null || dragIndex === dropIndex) return;
+        [lineup[dragIndex], lineup[dropIndex]] = [lineup[dropIndex], lineup[dragIndex]];
+        saveData();
+        renderBenchAndSlots();
+      });
+    });
+
+    updateLineupSummary(team, lineup);
+  }
+
+  function opsOf(p) {
+    if (p.obp === null || p.slg === null) return "—";
+    return fmt3(p.obp + p.slg);
+  }
+
+  function updateLineupSummary(team, lineup) {
+    if (!team) {
+      document.getElementById("sum-avg").textContent = "—";
+      document.getElementById("sum-obp").textContent = "—";
+      document.getElementById("sum-slg").textContent = "—";
+      return;
+    }
+    const players = lineup.filter(Boolean).map(id => team.players.find(p => p.id === id)).filter(Boolean);
+    const avgOf = (key) => {
+      const vals = players.map(p => p[key]).filter(v => v !== null && v !== undefined);
+      if (vals.length === 0) return null;
+      return vals.reduce((a, b) => a + b, 0) / vals.length;
+    };
+    document.getElementById("sum-avg").textContent = fmt3(avgOf("avg"));
+    document.getElementById("sum-obp").textContent = fmt3(avgOf("obp"));
+    document.getElementById("sum-slg").textContent = fmt3(avgOf("slg"));
+  }
+
+  document.getElementById("auto-fill-btn").addEventListener("click", () => {
+    const team = getTeam(lineupTeamId);
+    if (!team) return;
+    const sorted = [...team.players]
+      .filter(p => p.obp !== null && p.slg !== null)
+      .sort((a, b) => (b.obp + b.slg) - (a.obp + a.slg))
+      .slice(0, LINEUP_SIZE)
+      .map(p => p.id);
+    const lineup = getLineup(lineupTeamId);
+    for (let i = 0; i < LINEUP_SIZE; i++) lineup[i] = sorted[i] || null;
+    saveData();
+    renderBenchAndSlots();
+    flashSaved("Auto-filled by OPS");
+  });
+
+  document.getElementById("clear-lineup-btn").addEventListener("click", () => {
+    const lineup = getLineup(lineupTeamId);
+    for (let i = 0; i < LINEUP_SIZE; i++) lineup[i] = null;
+    saveData();
+    renderBenchAndSlots();
+    flashSaved("Cleared");
+  });
+
+  lineupTeamSelect.addEventListener("change", () => {
+    lineupTeamId = lineupTeamSelect.value;
+    renderBenchAndSlots();
+  });
+
+  function flashSaved(msg) {
+    savedNote.textContent = msg;
+    setTimeout(() => { savedNote.textContent = ""; }, 1800);
+  }
+
+  // ---------- INIT ----------
+  renderTeamList();
+  renderRoster();
+})();
+</script>
+</body>
+</html>
