@@ -138,6 +138,24 @@
     letter-spacing: .03em;
     border: 1px solid var(--red);
   }
+  .badge-overlimit {
+    background: #C1121F;
+    color: #FFFFFF;
+    font-weight: 800;
+    letter-spacing: .03em;
+    animation: overlimit-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes overlimit-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .6; }
+  }
+  .badge-pinch-alert {
+    background: #1B5E20;
+    color: #FFFFFF;
+    font-weight: 800;
+    letter-spacing: .02em;
+    animation: overlimit-pulse 1.4s ease-in-out infinite;
+  }
 
   .roster-subtable { width: 100%; font-size: 13px; border-collapse: collapse; }
   .roster-subtable th {
@@ -177,6 +195,10 @@
     color: var(--chalk);
     white-space: nowrap;
   }
+  .lineup-slot-card.selectable { cursor: pointer; }
+  .lineup-slot-card.selectable:hover { border-color: var(--accent); }
+  .lineup-slot-card.selected-for-swap { border: 2px solid var(--accent); background: var(--card); }
+  #ingame-clutch-toggle.active { background: var(--accent); color: var(--chalk); border-color: var(--accent); }
 
   .pitcher-line {
     padding: 6px 4px;
@@ -230,9 +252,11 @@
       <span class="text-xs font-mono desk-only" style="color: var(--accent);" id="league-name-display">JHML · DETROIT MOTORS</span>
     </div>
     <nav class="flex gap-1 overflow-x-auto -mb-px" role="tablist" aria-label="Main sections">
-      <button class="tab-btn active px-4 py-2.5 text-sm font-medium font-sans" data-tab="rosters" role="tab" aria-selected="true">Rosters</button>
-      <button class="tab-btn px-4 py-2.5 text-sm font-medium font-sans" data-tab="cards" role="tab" aria-selected="false">Player Cards</button>
+      <button class="tab-btn active px-4 py-2.5 text-sm font-medium font-sans" data-tab="cards" role="tab" aria-selected="true">Player Cards</button>
+      <button class="tab-btn px-4 py-2.5 text-sm font-medium font-sans" data-tab="rosters" role="tab" aria-selected="false">Rosters</button>
       <button class="tab-btn px-4 py-2.5 text-sm font-medium font-sans" data-tab="lineup" role="tab" aria-selected="false">Lineup Optimizer</button>
+      <button class="tab-btn px-4 py-2.5 text-sm font-medium font-sans" data-tab="ingame" role="tab" aria-selected="false">In-Game Simulator</button>
+      <button class="tab-btn px-4 py-2.5 text-sm font-medium font-sans" data-tab="season" role="tab" aria-selected="false">Season</button>
     </nav>
   </div>
 </header>
@@ -240,7 +264,7 @@
 <main class="max-w-6xl mx-auto px-4 py-6 pb-16">
 
   <!-- ROSTERS TAB -->
-  <section id="tab-rosters" class="tab-panel">
+  <section id="tab-rosters" class="tab-panel hidden">
     <div class="flex flex-wrap items-center gap-3 mb-4">
       <label class="text-sm font-medium" for="roster-team-select">JHML Team</label>
       <select id="roster-team-select" class="field-input rounded px-3 py-2 text-sm min-w-[200px]"></select>
@@ -288,7 +312,7 @@
   </section>
 
   <!-- PLAYER CARDS TAB -->
-  <section id="tab-cards" class="tab-panel hidden">
+  <section id="tab-cards" class="tab-panel">
 
     <div class="card-panel rounded-md p-4 mb-5">
       <div class="flex flex-wrap items-center gap-3">
@@ -364,40 +388,49 @@
       </div>
 
       <div class="card-panel rounded-md p-4 mb-4">
-        <div class="text-[11px] font-semibold uppercase tracking-wide mb-2" style="color: var(--ink-soft);">Ballpark Modifiers</div>
-        <div class="flex flex-wrap items-end gap-3">
+        <div class="text-[11px] font-semibold uppercase tracking-wide mb-2" style="color: var(--ink-soft);">Environmental Conditions</div>
+        <div class="flex flex-wrap items-end gap-3 mb-3">
           <div>
-            <label class="text-xs block mb-1" for="lineup-ballpark-select">Select Ballpark</label>
-            <select id="lineup-ballpark-select" class="field-input rounded px-3 py-2 text-sm min-w-[180px]">
-              <option>Neutral / Not Set</option>
-              <option>Comerica Park</option>
-              <option>Fenway Park</option>
-              <option>Coors Field</option>
-              <option>Oracle Park</option>
-              <option>Yankee Stadium</option>
-              <option>Custom Park</option>
+            <label class="text-xs block mb-1" for="lineup-homeaway-select">Home / Away</label>
+            <select id="lineup-homeaway-select" class="field-input rounded px-3 py-2 text-sm min-w-[120px]">
+              <option value="Home">Home</option>
+              <option value="Away">Away</option>
             </select>
           </div>
           <div>
-            <label class="text-xs block mb-1" for="lineup-bps-adj">Ballpark Singles Adj.</label>
-            <input id="lineup-bps-adj" type="number" step="1" value="0" class="field-input rounded px-3 py-2 text-sm w-24">
+            <label class="text-xs block mb-1" for="lineup-season-split-select">Time / Season Split</label>
+            <select id="lineup-season-split-select" class="field-input rounded px-3 py-2 text-sm min-w-[220px]">
+              <option value="jjaNight">Jun/Jul/Aug - NIGHT</option>
+              <option value="jjaDay">Jun/Jul/Aug - DAY</option>
+              <option value="amsoNight">Apr/May/Sep/Oct - NIGHT</option>
+              <option value="amsoDay">Apr/May/Sep/Oct - DAY</option>
+            </select>
           </div>
           <div>
-            <label class="text-xs block mb-1" for="lineup-bphr-adj">Ballpark HR Adj.</label>
-            <input id="lineup-bphr-adj" type="number" step="1" value="0" class="field-input rounded px-3 py-2 text-sm w-24">
+            <label class="text-xs block mb-1" for="lineup-d20-input">Weather d20 Roll</label>
+            <input id="lineup-d20-input" type="number" min="1" max="20" step="1" value="10" class="field-input rounded px-3 py-2 text-sm w-24">
           </div>
         </div>
-      </div>
-
-      <div class="card-panel rounded-md p-4 mb-4">
-        <div class="text-[11px] font-semibold uppercase tracking-wide mb-2" style="color: var(--ink-soft);">Weather Engine</div>
-        <div>
-          <label class="text-xs block mb-1" for="lineup-weather-select">Weather Conditions</label>
-          <select id="lineup-weather-select" class="field-input rounded px-3 py-2 text-sm min-w-[180px]">
-            <option>Fair</option>
-            <option>Wind Out</option>
-            <option>Wind In</option>
-          </select>
+        <div class="flex flex-wrap items-end gap-3 mb-3">
+          <div>
+            <label class="text-xs block mb-1" for="lineup-manual-bps-l">Manual BPS Left</label>
+            <input id="lineup-manual-bps-l" type="number" step="1" class="field-input rounded px-3 py-2 text-sm w-24">
+          </div>
+          <div>
+            <label class="text-xs block mb-1" for="lineup-manual-bps-r">Manual BPS Right</label>
+            <input id="lineup-manual-bps-r" type="number" step="1" class="field-input rounded px-3 py-2 text-sm w-24">
+          </div>
+          <div>
+            <label class="text-xs block mb-1" for="lineup-manual-bphr-l">Manual BPHR Left</label>
+            <input id="lineup-manual-bphr-l" type="number" step="1" class="field-input rounded px-3 py-2 text-sm w-24">
+          </div>
+          <div>
+            <label class="text-xs block mb-1" for="lineup-manual-bphr-r">Manual BPHR Right</label>
+            <input id="lineup-manual-bphr-r" type="number" step="1" class="field-input rounded px-3 py-2 text-sm w-24">
+          </div>
+        </div>
+        <div id="weather-status-panel" class="rounded-md p-3 font-mono text-sm" style="background: var(--bg-alt); border: 1px solid var(--border);">
+          <!-- filled by renderWeatherStatusPanel() -->
         </div>
       </div>
 
@@ -412,15 +445,150 @@
           <h2 class="font-slab font-semibold text-lg">Suggested Batting Order</h2>
           <span id="lineup-result-meta" class="text-xs font-mono" style="color: var(--ink-soft);"></span>
         </div>
+        <p class="text-xs mb-2" style="color: var(--ink-soft);">Click a bench player below, then click a starting slot to swap them in.</p>
         <div id="lineup-result-slots" class="flex flex-col gap-2"></div>
       </div>
+
+      <div id="lineup-bench-card" class="card-panel rounded-md p-4 hidden mt-4">
+        <h2 class="font-slab font-semibold text-lg mb-2">Pre-Game Eligible Bench Pool</h2>
+        <div id="lineup-bench-slots" class="flex flex-col gap-2"></div>
+        <p id="lineup-bench-empty" class="text-sm py-2" style="color: var(--ink-soft);">No other Majors-eligible hitters on the bench.</p>
+      </div>
+
+      <button id="confirm-start-game-btn" class="w-full sm:w-auto px-6 py-3 rounded-md text-sm font-bold uppercase tracking-wide mt-4 hidden" style="background: #1B5E20; color: #FFFFFF; border: 2px solid var(--accent);">
+        🔒 CONFIRM AND START LIVE GAME
+      </button>
+    </div>
+  </section>
+
+  <!-- SEASON TAB -->
+  <section id="tab-season" class="tab-panel hidden">
+    <div id="season-empty-state" class="card-panel rounded-md p-10 text-center" style="color: var(--ink-soft);">
+      No data loaded yet. Go to the <strong>Player Cards</strong> tab and import your Hitters and Pitchers CSVs first.
+    </div>
+
+    <div id="season-body" class="hidden">
+      <div class="flex flex-wrap mb-4">
+        <button class="toggle-btn active px-4 py-1.5 text-sm font-medium" data-seasonview="weather">Weather Matrix</button>
+        <button class="toggle-btn px-4 py-1.5 text-sm font-medium" data-seasonview="schedule">Schedule</button>
+        <button class="toggle-btn px-4 py-1.5 text-sm font-medium" data-seasonview="postgame">Post-Game Entry</button>
+        <button class="toggle-btn px-4 py-1.5 text-sm font-medium" data-seasonview="trades">Trades</button>
+      </div>
+
+      <!-- Weather Matrix -->
+      <div id="seasonview-weather" class="seasonview-panel">
+        <p class="text-xs mb-3" style="color: var(--ink-soft);">Set each team's current ballpark weather status. This is a per-team status board, separate from the one-off Ballpark/Weather adjustment fields on the Lineup Optimizer tab.</p>
+        <div id="weather-matrix-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+      </div>
+
+      <!-- Schedule -->
+      <div id="seasonview-schedule" class="seasonview-panel hidden">
+        <div class="card-panel rounded-md p-3 mb-4">
+          <div class="text-[11px] font-semibold uppercase tracking-wide mb-2" style="color: var(--ink-soft);">Add a Game</div>
+          <div class="flex flex-wrap items-end gap-3">
+            <div>
+              <label class="text-xs block mb-1" for="sched-home-team">My Team</label>
+              <select id="sched-home-team" class="field-input rounded px-3 py-2 text-sm min-w-[160px]"></select>
+            </div>
+            <div>
+              <label class="text-xs block mb-1" for="sched-away-team">Opponent</label>
+              <select id="sched-away-team" class="field-input rounded px-3 py-2 text-sm min-w-[160px]"></select>
+            </div>
+            <div>
+              <label class="text-xs block mb-1" for="sched-away-pitcher">Opponent Pitcher</label>
+              <select id="sched-away-pitcher" class="field-input rounded px-3 py-2 text-sm min-w-[180px]"></select>
+            </div>
+            <button id="sched-add-btn" class="px-3 py-1.5 rounded text-sm font-medium" style="background: var(--green); color: var(--chalk);">Add Game</button>
+          </div>
+        </div>
+        <div class="text-sm font-mono mb-2" style="color: var(--ink-soft);">Season progress: <span id="season-progress-label"></span></div>
+        <div id="schedule-list" class="flex flex-col gap-2"></div>
+        <p id="schedule-empty" class="text-sm py-3" style="color: var(--ink-soft);">No games on the schedule yet.</p>
+      </div>
+
+      <!-- Post-Game Entry -->
+      <div id="seasonview-postgame" class="seasonview-panel hidden">
+        <div class="flex flex-wrap items-end gap-3 mb-3">
+          <div>
+            <label class="text-xs block mb-1" for="postgame-team-select">Team</label>
+            <select id="postgame-team-select" class="field-input rounded px-3 py-2 text-sm min-w-[180px]"></select>
+          </div>
+          <button id="postgame-submit-btn" class="px-3 py-1.5 rounded text-sm font-medium" style="background: var(--green); color: var(--chalk);">Add To Season Totals</button>
+          <button id="advance-game-btn" class="px-3 py-1.5 rounded text-sm font-medium" style="background: var(--header-bg); color: var(--chalk);">Advance Season (+1 Game)</button>
+          <span id="postgame-status" class="text-xs font-mono" style="color: var(--ink-soft);"></span>
+        </div>
+        <div class="card-panel rounded-md p-3 mb-3">
+          <div class="position-group-title">Hitters — enter AB this game</div>
+          <div id="postgame-hitters-list" class="flex flex-col gap-1"></div>
+        </div>
+        <div class="card-panel rounded-md p-3">
+          <div class="position-group-title">Pitchers — enter IP this game</div>
+          <div id="postgame-pitchers-list" class="flex flex-col gap-1"></div>
+        </div>
+      </div>
+
+      <!-- Trades -->
+      <div id="seasonview-trades" class="seasonview-panel hidden">
+        <div class="card-panel rounded-md p-3 mb-4">
+          <div class="text-[11px] font-semibold uppercase tracking-wide mb-2" style="color: var(--ink-soft);">Move a Player</div>
+          <div class="flex flex-wrap items-end gap-3">
+            <div>
+              <label class="text-xs block mb-1" for="trade-player-select">Player</label>
+              <select id="trade-player-select" class="field-input rounded px-3 py-2 text-sm min-w-[220px]"></select>
+            </div>
+            <div>
+              <label class="text-xs block mb-1" for="trade-team-select">New Team</label>
+              <select id="trade-team-select" class="field-input rounded px-3 py-2 text-sm min-w-[160px]"></select>
+            </div>
+            <button id="trade-execute-btn" class="px-3 py-1.5 rounded text-sm font-medium" style="background: var(--accent); color: var(--chalk);">Execute Trade</button>
+          </div>
+        </div>
+        <div class="position-group-title">Recent Moves</div>
+        <div id="trade-log-list" class="flex flex-col gap-1"></div>
+        <p id="trade-log-empty" class="text-sm py-2" style="color: var(--ink-soft);">No moves recorded yet.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- IN-GAME SIMULATOR TAB -->
+  <section id="tab-ingame" class="tab-panel hidden">
+    <div id="ingame-empty-state" class="card-panel rounded-md p-10 text-center" style="color: var(--ink-soft);">
+      No live lineup yet. Go to the <strong>Lineup Optimizer</strong> tab and click "Generate Suggested Strategic Lineup" first.
+    </div>
+
+    <div id="ingame-body" class="hidden">
+      <div class="card-panel rounded-md p-4 mb-4">
+        <div class="text-[11px] font-semibold uppercase tracking-wide mb-2" style="color: var(--ink-soft);">Pinch-Hitter Advisor</div>
+        <div class="flex flex-wrap items-end gap-3">
+          <div>
+            <label class="text-xs block mb-1" for="ingame-reliever-select">Swap Opponent Pitcher (Bullpen)</label>
+            <select id="ingame-reliever-select" class="field-input rounded px-3 py-2 text-sm min-w-[240px]"></select>
+          </div>
+          <div>
+            <label class="text-xs block mb-1" for="ingame-clutch-toggle">Clutch Situation Active</label>
+            <button id="ingame-clutch-toggle" type="button" class="px-3 py-2 rounded text-sm font-bold" style="border: 1px solid var(--border); background: var(--card);">OFF</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-xs mb-2" style="color: var(--ink-soft);">Click a healthy bench player below, then click a starting slot to substitute them in.</p>
+      <h2 class="font-slab font-semibold text-lg mb-2">Starting Lineup</h2>
+      <div id="ingame-starters" class="flex flex-col gap-2 mb-6"></div>
+
+      <h2 class="font-slab font-semibold text-lg mb-2">Available Bench Pool</h2>
+      <div id="ingame-bench" class="flex flex-col gap-2"></div>
+      <p id="ingame-bench-empty" class="text-sm py-2" style="color: var(--ink-soft);">No other Majors-eligible hitters on the bench.</p>
+
+      <h2 class="font-slab font-semibold text-lg mb-2 mt-6">🚫 USED / EXTINGUISHED PLAYERS (INELIGIBLE FOR RE-ENTRY)</h2>
+      <div id="ingame-extinguished" class="flex flex-col gap-2"></div>
+      <p id="ingame-extinguished-empty" class="text-sm py-2" style="color: var(--ink-soft);">No substitutions made yet this game.</p>
     </div>
   </section>
 
 </main>
 
 <footer class="max-w-6xl mx-auto px-4 pb-8 text-xs" style="color: var(--ink-soft);">
-  Everything here is saved in this browser only — clearing site data will erase it. <span style="opacity:.5;">build v7</span>
+  Everything here is saved in this browser only — clearing site data will erase it. <span style="opacity:.5;">build v8</span>
 </footer>
 
 <script>
@@ -436,9 +604,19 @@
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed.hitters) || !Array.isArray(parsed.pitchers)) throw new Error("bad shape");
       parsed.lineupPrefs = parsed.lineupPrefs || {};
+      parsed.weatherMatrix = parsed.weatherMatrix || {};
+      parsed.schedule = Array.isArray(parsed.schedule) ? parsed.schedule : [];
+      parsed.seasonGameCount = parsed.seasonGameCount || 0;
+      parsed.seasonTotals = parsed.seasonTotals || { hitters: {}, pitchers: {} };
+      parsed.transactionLog = Array.isArray(parsed.transactionLog) ? parsed.transactionLog : [];
+      parsed.gameState = parsed.gameState || null;
       return parsed;
     } catch (e) {
-      return { hitters: [], pitchers: [], lineupPrefs: {} };
+      return {
+        hitters: [], pitchers: [], lineupPrefs: {},
+        weatherMatrix: {}, schedule: [], seasonGameCount: 0,
+        seasonTotals: { hitters: {}, pitchers: {} }, transactionLog: [], gameState: null,
+      };
     }
   }
 
@@ -459,6 +637,16 @@
     const n = Number(s);
     return isNaN(n) ? null : n;
   }
+  // Strict parseFloat-or-0 cast for every math-critical stat column (the
+  // H/OB/TB/SO/DP/Clutch/BPS/BPHR splits fed into calcMatchup). Applied at
+  // ingestion time so a blank or malformed cell can never propagate a null
+  // or a string into the formulas downstream and produce NaN or a wrongly
+  // scaled result. Display-only fields (AB, PA, Age, IP, Hold) keep using
+  // numOrNull above, since those should show "—" rather than a fake 0.
+  function numOrZero(v) {
+    const n = parseFloat(v);
+    return isNaN(n) ? 0 : n;
+  }
   function col(row, idx) {
     const v = row[idx];
     return (v === undefined || v === null) ? "" : String(v).trim();
@@ -466,6 +654,12 @@
   function normalizeTeamName(raw) {
     const v = (raw || "").trim();
     return v.toLowerCase() === "fre" ? "Free Agent" : v;
+  }
+  // Case-insensitive, missing-value-safe eligibility check — a player is
+  // only "Majors" if the field exists AND lowercases to "majors". Anything
+  // missing/blank/mis-cased (or Minors/Injured) is NOT eligible.
+  function isMajors(player) {
+    return !!(player && player.status && String(player.status).trim().toLowerCase() === "majors");
   }
 
   // ==========================================================================
@@ -509,6 +703,24 @@
     return v.endsWith("*") ? 0 : 5;
   }
 
+  // Converts a spreadsheet column letter ("H", "AG", "AD"...) to a 0-based
+  // index. Used as the FALLBACK position for the new rate-stat columns when
+  // their header text isn't found — an absolute column letter given directly
+  // from the real spreadsheet is far more reliable than a guessed relative
+  // offset from the name column, which is what caused the earlier bug.
+  function colLetterToIndex(letters) {
+    let n = 0;
+    for (const ch of String(letters).toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64);
+    return n - 1;
+  }
+  function byHeaderOrCol(headerRow, headers, colLetter) {
+    if (headers && headers.length) {
+      const idx = findHeaderIndex(headerRow, headers);
+      if (idx !== -1) return idx;
+    }
+    return colLetterToIndex(colLetter);
+  }
+
   // ==========================================================================
   // HITTERS — columns located dynamically from the header row (row 1), not
   // hardcoded numbers. TM / Age / JHML / Hitters (name) / AB / PA / FIELDING
@@ -532,26 +744,53 @@
     const nameIdx = findHeaderIndex(headerRow, ["Hitters"]);
     const anchor = nameIdx !== -1 ? nameIdx : 3; // fallback if header text ever doesn't match
     const at = (key) => anchor + HITTER_OFFSETS_FROM_NAME[key];
+    const byHeader = (key, titles) => {
+      const idx = findHeaderIndex(headerRow, titles);
+      return idx !== -1 ? idx : at(key);
+    };
     return {
       name: anchor,
-      tm: findHeaderIndex(headerRow, ["TM"]) !== -1 ? findHeaderIndex(headerRow, ["TM"]) : at("tm"),
-      age: findHeaderIndex(headerRow, ["Age"]) !== -1 ? findHeaderIndex(headerRow, ["Age"]) : at("age"),
-      jhml: findHeaderIndex(headerRow, ["JHML"]) !== -1 ? findHeaderIndex(headerRow, ["JHML"]) : at("jhml"),
-      ab: findHeaderIndex(headerRow, ["AB"]) !== -1 ? findHeaderIndex(headerRow, ["AB"]) : at("ab"),
-      pa: findHeaderIndex(headerRow, ["PA"]) !== -1 ? findHeaderIndex(headerRow, ["PA"]) : at("pa"),
-      fielding: findHeaderIndex(headerRow, ["FIELDING"]) !== -1 ? findHeaderIndex(headerRow, ["FIELDING"]) : at("fielding"),
-      lk: at("lk"), lw: at("lw"), lh: at("lh"), lob: at("lob"), ltb: at("ltb"), lhr: at("lhr"), lbp: at("lbp"),
-      lcl: at("lcl"), ldp: at("ldp"),
-      rk: at("rk"), rw: at("rw"), rh: at("rh"), rob: at("rob"), rtb: at("rtb"), rhr: at("rhr"), rbp: at("rbp"),
-      rcl: at("rcl"), rdp: at("rdp"),
+      tm: byHeader("tm", ["TM"]),
+      age: byHeader("age", ["Age"]),
+      jhml: byHeader("jhml", ["JHML"]),
+      ab: byHeader("ab", ["AB"]),
+      pa: byHeader("pa", ["PA"]),
+      fielding: byHeaderOrCol(headerRow, ["FIELDING"], "AG"),
+      // Raw dice-count columns — header text first, relative offset from the
+      // name column as fallback.
+      lk: byHeader("lk", ["LK"]), lw: byHeader("lw", ["LW"]), lh: byHeader("lh", ["LH"]),
+      lob: byHeader("lob", ["LOB"]), ltb: byHeader("ltb", ["LTB"]), lhr: byHeader("lhr", ["LHR"]),
+      lbp: byHeader("lbp", ["LBP"]), lcl: byHeader("lcl", ["LCL"]), ldp: byHeader("ldp", ["LDP"]),
+      rk: byHeader("rk", ["RK"]), rw: byHeader("rw", ["RW"]), rh: byHeader("rh", ["RH"]),
+      rob: byHeader("rob", ["ROB"]), rtb: byHeader("rtb", ["RTB"]), rhr: byHeader("rhr", ["RHR"]),
+      rbp: byHeader("rbp", ["RBP"]), rcl: byHeader("rcl", ["RCL"]), rdp: byHeader("rdp", ["RDP"]),
+      powerL: byHeaderOrCol(headerRow, [], "Q"),
+      powerR: byHeaderOrCol(headerRow, [], "AD"),
+      // Explicit handedness column — header text first, Column AI fallback.
+      // Authoritative when present (L/R/S); the name-symbol scan below is
+      // only a fallback for rows where this column is blank/unrecognized.
+      bats: byHeaderOrCol(headerRow, ["BATS"], "AI"),
     };
   }
 
+  // BRUTE-FORCE HANDEDNESS SCANNER — checks the RAW, uncleaned cell for a
+  // '*' or '+' ANYWHERE in the string, before any quote-stripping or
+  // trimming happens. This is deliberately more permissive than an
+  // endsWith() check: it catches a symbol that isn't strictly the very
+  // last character (trailing whitespace, a stray quote after it, etc.)
+  // that could otherwise slip through and default a real Lefty/Switch
+  // hitter to Right. Only AFTER this hand is locked in does the display
+  // name get cleaned of quotes/asterisks/plus signs.
   function parseNameAndBats(raw) {
-    let name = (raw || "").trim();
+    const original = String(raw ?? "");
     let bats = "Right";
-    if (name.endsWith("*")) { bats = "Left"; name = name.slice(0, -1).trim(); }
-    else if (name.endsWith("+")) { bats = "Switch"; name = name.slice(0, -1).trim(); }
+    if (original.includes("*")) bats = "Left";
+    else if (original.includes("+")) bats = "Switch";
+    const name = original
+      .replace(/\uFEFF/g, "").replace(/\u00A0/g, " ")
+      .replace(/["'\u201C\u201D\u2018\u2019]/g, "")
+      .replace(/[*+]/g, "")
+      .trim();
     return { name, bats };
   }
 
@@ -680,10 +919,22 @@
   };
   function positionLabel(code) { return POSITION_LABELS[code] || code.toUpperCase(); }
 
+  // Explicit BATS column (L/R/S) — authoritative when present. Returns null
+  // for blank/unrecognized values so the caller can fall back to the
+  // name-symbol scan.
+  function batsFromColumn(raw) {
+    const v = (raw || "").trim().toUpperCase();
+    if (v === "L") return "Left";
+    if (v === "S") return "Switch";
+    if (v === "R") return "Right";
+    return null;
+  }
+
   function buildHitterFromRow(row, hc) {
     const rawName = col(row, hc.name);
     if (!rawName) return null;
-    const { name, bats } = parseNameAndBats(rawName);
+    const { name, bats: batsFromName } = parseNameAndBats(rawName);
+    const bats = batsFromColumn(col(row, hc.bats)) || batsFromName;
     const lRaw = col(row, hc.lbp);
     const wRaw = col(row, hc.rbp);
     const fieldingRaw = col(row, hc.fielding);
@@ -697,21 +948,22 @@
       name, bats,
       ab: numOrNull(col(row, hc.ab)),
       vsLHP: {
-        so: numOrNull(col(row, hc.lk)), bb: numOrNull(col(row, hc.lw)), h: numOrNull(col(row, hc.lh)),
-        ob: numOrNull(col(row, hc.lob)), tb: numOrNull(col(row, hc.ltb)), hr: numOrNull(col(row, hc.lhr)),
-        bpRaw: lRaw, bps: calcBPS(lRaw), bphr: calcHitterBPHR(lRaw),
-        cl: numOrNull(col(row, hc.lcl)), dp: numOrNull(col(row, hc.ldp)),
+        so: numOrZero(col(row, hc.lk)), bb: numOrZero(col(row, hc.lw)), h: numOrZero(col(row, hc.lh)),
+        ob: numOrZero(col(row, hc.lob)), tb: numOrZero(col(row, hc.ltb)), hr: numOrZero(col(row, hc.lhr)),
+        bpRaw: lRaw, bps: numOrZero(calcBPS(lRaw)), bphr: numOrZero(calcHitterBPHR(lRaw)),
+        cl: numOrZero(col(row, hc.lcl)), dp: numOrZero(col(row, hc.ldp)),
       },
       vsRHP: {
-        so: numOrNull(col(row, hc.rk)), bb: numOrNull(col(row, hc.rw)), h: numOrNull(col(row, hc.rh)),
-        ob: numOrNull(col(row, hc.rob)), tb: numOrNull(col(row, hc.rtb)), hr: numOrNull(col(row, hc.rhr)),
-        bpRaw: wRaw, bps: calcBPS(wRaw), bphr: calcHitterBPHR(wRaw),
-        cl: numOrNull(col(row, hc.rcl)), dp: numOrNull(col(row, hc.rdp)),
+        so: numOrZero(col(row, hc.rk)), bb: numOrZero(col(row, hc.rw)), h: numOrZero(col(row, hc.rh)),
+        ob: numOrZero(col(row, hc.rob)), tb: numOrZero(col(row, hc.rtb)), hr: numOrZero(col(row, hc.rhr)),
+        bpRaw: wRaw, bps: numOrZero(calcBPS(wRaw)), bphr: numOrZero(calcHitterBPHR(wRaw)),
+        cl: numOrZero(col(row, hc.rcl)), dp: numOrZero(col(row, hc.rdp)),
       },
+      powerL: col(row, hc.powerL), powerR: col(row, hc.powerR),
       fieldingRaw, fielding,
       pa: numOrNull(col(row, hc.pa)),
       ironStatus: ironStatus(col(row, hc.pa)),
-      status: "Majors", // Majors | Minors | Injured — set on the Rosters tab; re-import preserves it by name
+      status: "Majors", // Majors | Minors | Injured — force-set on import; re-import preserves any prior choice by name
     };
   }
 
@@ -747,19 +999,27 @@
     const nameIdx = findHeaderIndex(headerRow, ["Pitchers"]);
     const anchor = nameIdx !== -1 ? nameIdx : 3;
     const at = (key) => anchor + PITCHER_OFFSETS_FROM_NAME[key];
+    const byHeader = (key, titles) => {
+      const idx = findHeaderIndex(headerRow, titles);
+      return idx !== -1 ? idx : at(key);
+    };
     return {
       name: anchor,
-      tm: findHeaderIndex(headerRow, ["TM"]) !== -1 ? findHeaderIndex(headerRow, ["TM"]) : at("tm"),
-      age: findHeaderIndex(headerRow, ["Age", "AGE"]) !== -1 ? findHeaderIndex(headerRow, ["Age", "AGE"]) : at("age"),
-      jhml: findHeaderIndex(headerRow, ["JHML"]) !== -1 ? findHeaderIndex(headerRow, ["JHML"]) : at("jhml"),
-      ip: findHeaderIndex(headerRow, ["IP"]) !== -1 ? findHeaderIndex(headerRow, ["IP"]) : at("ip"),
-      hold: findHeaderIndex(headerRow, ["HOLD"]) !== -1 ? findHeaderIndex(headerRow, ["HOLD"]) : at("hold"),
-      endurance: findHeaderIndex(headerRow, ["ENDURANCE"]) !== -1 ? findHeaderIndex(headerRow, ["ENDURANCE"]) : at("endurance"),
-      fld: findHeaderIndex(headerRow, ["FLD"]) !== -1 ? findHeaderIndex(headerRow, ["FLD"]) : at("fld"),
-      bk: findHeaderIndex(headerRow, ["BK"]) !== -1 ? findHeaderIndex(headerRow, ["BK"]) : at("bk"),
-      wp: findHeaderIndex(headerRow, ["WP"]) !== -1 ? findHeaderIndex(headerRow, ["WP"]) : at("wp"),
-      k: at("k"), w: at("w"), h: at("h"), ob: at("ob"), tb: at("tb"), hr: at("hr"), lbp: at("lbp"), ldp: at("ldp"),
-      rk: at("rk"), rw: at("rw"), rh: at("rh"), rob: at("rob"), rtb: at("rtb"), rhr: at("rhr"), rbp: at("rbp"), rdp: at("rdp"),
+      tm: byHeader("tm", ["TM"]),
+      age: byHeader("age", ["Age", "AGE"]),
+      jhml: byHeader("jhml", ["JHML"]),
+      ip: byHeader("ip", ["IP"]),
+      hold: byHeader("hold", ["HOLD"]),
+      endurance: byHeaderOrCol(headerRow, ["ENDURANCE"], "AA"),
+      fld: byHeaderOrCol(headerRow, ["FLD"], "AB"),
+      bk: byHeader("bk", ["BK"]),
+      wp: byHeader("wp", ["WP"]),
+      k: byHeader("k", ["LK"]), w: byHeader("w", ["LW"]), h: byHeader("h", ["LH"]),
+      ob: byHeader("ob", ["LOB"]), tb: byHeader("tb", ["LTB"]), hr: byHeader("hr", ["LHR"]),
+      lbp: byHeader("lbp", ["LBP"]), ldp: byHeader("ldp", ["LDP"]),
+      rk: byHeader("rk", ["RK"]), rw: byHeader("rw", ["RW"]), rh: byHeader("rh", ["RH"]),
+      rob: byHeader("rob", ["ROB"]), rtb: byHeader("rtb", ["RTB"]), rhr: byHeader("rhr", ["RHR"]),
+      rbp: byHeader("rbp", ["RBP"]), rdp: byHeader("rdp", ["RDP"]),
     };
   }
 
@@ -775,29 +1035,77 @@
     return isNaN(n) ? v : n;
   }
 
+  // Same brute-force scan as parseNameAndBats: a pitcher's name column only
+  // ever carries the Left-handed marker ('*'); anywhere in the raw cell
+  // counts, checked before any cleaning.
   function parsePitcherNameAndThrows(raw) {
-    let name = (raw || "").trim();
-    let throwsHand = "R";
-    if (name.endsWith("*")) { throwsHand = "L"; name = name.slice(0, -1).trim(); }
+    const original = String(raw ?? "");
+    const throwsHand = original.includes("*") ? "L" : "R";
+    const name = original
+      .replace(/\uFEFF/g, "").replace(/\u00A0/g, " ")
+      .replace(/["'\u201C\u201D\u2018\u2019]/g, "")
+      .replace(/[*+]/g, "")
+      .trim();
     return { name, throwsHand };
   }
 
   // ENDURANCE LOOP — checks row[endurance] directly, plain string ops only,
   // so an internal '*' like "S(6*)" never breaks classification. A pitcher
   // can independently qualify for more than one bucket (e.g. "S(5)R(4)").
+  // ILLEGAL STARTER RULE: "S" alone qualifies a pitcher for Starting Pitchers
+  // ONLY when the number inside the parens is 4 or higher — S(4), S(5), etc.
+  // S(1) through S(3) (e.g. a real endurance string like "S(3)") route to
+  // Relief Pitchers instead, even though the string starts with "S".
+  function parseSNumber(v) {
+    const idx = v.indexOf("S(");
+    if (idx === -1) return null;
+    const close = v.indexOf(")", idx);
+    if (close === -1) return null;
+    const inner = v.slice(idx + 2, close).replace(/\*/g, "").trim();
+    const n = parseInt(inner, 10);
+    return isNaN(n) ? null : n;
+  }
+
   function classifyEndurance(raw) {
     const v = (raw || "").trim();
+    const hasSTag = v.startsWith("S") || v.includes("S(");
+    const sNum = parseSNumber(v);
+    const isStarter = hasSTag && sNum !== null && sNum >= 4;
+    const isReliever = v.includes("R") || (hasSTag && sNum !== null && sNum < 4);
     return {
       raw: v,
-      isStarter: v.startsWith("S") || v.includes("S("),
-      isReliever: v.includes("R"),
+      isStarter,
+      isReliever,
       isCloser: v.includes("C"),
       threeDaysRest: v.includes("*"),
     };
   }
 
+  // EXCEL DATE-GLITCH FIXER — Excel sometimes auto-formats a raw fielding
+  // rating like "3-0" or "3-5" into a calendar date ("20-Mar", "5-Mar")
+  // because it looks like a day-month pair. Detected by the presence of a
+  // 3-letter month abbreviation anywhere in the cell: that abbreviation IS
+  // the intended range number (Mar -> 3), and the day number's last digit
+  // is the intended error (20 -> 0, 5 -> 5) — this reverses BOTH given
+  // examples exactly. Returns null (falls through to normal parsing) for
+  // any cell that isn't actually a mangled date.
+  const MONTH_ABBR_TO_NUM = { jan:1, feb:2, mar:3, apr:4, may:5, jun:6, jul:7, aug:8, sep:9, oct:10, nov:11, dec:12 };
+  function fixExcelDateGlitch(raw) {
+    const v = (raw || "").trim();
+    const monthMatch = v.match(/[A-Za-z]{3}/);
+    if (!monthMatch) return null;
+    const monthKey = monthMatch[0].toLowerCase();
+    if (!(monthKey in MONTH_ABBR_TO_NUM)) return null;
+    const dayMatch = v.match(/\d{1,2}/);
+    if (!dayMatch) return null;
+    const day = parseInt(dayMatch[0], 10);
+    return { range: MONTH_ABBR_TO_NUM[monthKey], error: day % 10 };
+  }
+
   function parsePitcherFielding(raw) {
     const v = (raw || "").trim();
+    const dateFix = fixExcelDateGlitch(v);
+    if (dateFix) return { raw: v, range: dateFix.range, error: dateFix.error };
     const parts = v.split("-");
     const range = parts.length >= 2 ? Number(parts[0]) : NaN;
     const error = parts.length >= 2 ? Number(parts[1]) : NaN;
@@ -824,21 +1132,22 @@
       name, throwsHand,
       ip: numOrNull(col(row, pc.ip)),
       vsLHB: {
-        k: numOrNull(col(row, pc.k)), w: numOrNull(col(row, pc.w)), h: numOrNull(col(row, pc.h)),
-        ob: numOrNull(col(row, pc.ob)), tb: numOrNull(col(row, pc.tb)), hr: numOrNull(col(row, pc.hr)),
-        bpRaw: lRaw, bps: calcBPS(lRaw), bphr: calcPitcherBPHR(lRaw),
-        dp: numOrNull(col(row, pc.ldp)),
+        k: numOrZero(col(row, pc.k)), w: numOrZero(col(row, pc.w)), h: numOrZero(col(row, pc.h)),
+        ob: numOrZero(col(row, pc.ob)), tb: numOrZero(col(row, pc.tb)), hr: numOrZero(col(row, pc.hr)),
+        bpRaw: lRaw, bps: numOrZero(calcBPS(lRaw)), bphr: numOrZero(calcPitcherBPHR(lRaw)),
+        dp: numOrZero(col(row, pc.ldp)),
       },
       vsRHB: {
-        k: numOrNull(col(row, pc.rk)), w: numOrNull(col(row, pc.rw)), h: numOrNull(col(row, pc.rh)),
-        ob: numOrNull(col(row, pc.rob)), tb: numOrNull(col(row, pc.rtb)), hr: numOrNull(col(row, pc.rhr)),
-        bpRaw: rRaw, bps: calcBPS(rRaw), bphr: calcPitcherBPHR(rRaw),
-        dp: numOrNull(col(row, pc.rdp)),
+        k: numOrZero(col(row, pc.rk)), w: numOrZero(col(row, pc.rw)), h: numOrZero(col(row, pc.rh)),
+        ob: numOrZero(col(row, pc.rob)), tb: numOrZero(col(row, pc.rtb)), hr: numOrZero(col(row, pc.rhr)),
+        bpRaw: rRaw, bps: numOrZero(calcBPS(rRaw)), bphr: numOrZero(calcPitcherBPHR(rRaw)),
+        dp: numOrZero(col(row, pc.rdp)),
       },
       hold: numOrNull(col(row, pc.hold)),
       endurance: classifyEndurance(col(row, pc.endurance)),
       fielding: parsePitcherFielding(col(row, pc.fld)),
       bk: col(row, pc.bk), wp: col(row, pc.wp),
+      status: "Majors", // not used by the optimizer today, but kept consistent with hitters
     };
   }
 
@@ -870,6 +1179,8 @@
     rosters: document.getElementById("tab-rosters"),
     cards: document.getElementById("tab-cards"),
     lineup: document.getElementById("tab-lineup"),
+    season: document.getElementById("tab-season"),
+    ingame: document.getElementById("tab-ingame"),
   };
   tabButtons.forEach(btn => {
     btn.addEventListener("click", () => {
@@ -880,6 +1191,8 @@
       if (btn.dataset.tab === "rosters") renderRosterTeamSelect();
       if (btn.dataset.tab === "cards") renderDataGrid();
       if (btn.dataset.tab === "lineup") renderLineupTab();
+      if (btn.dataset.tab === "season") renderSeasonTab();
+      if (btn.dataset.tab === "ingame") renderInGameTab();
     });
   });
 
@@ -931,6 +1244,16 @@
     return "—";
   }
 
+  // Cumulative season usage vs each player's carded limit (AB for hitters,
+  // IP for pitchers). Purely a visual warning — never excludes anyone from
+  // the lineup or the optimizer.
+  function cumulativeAB(playerId) { return (state.seasonTotals.hitters[playerId] || {}).ab || 0; }
+  function cumulativeIP(playerId) { return (state.seasonTotals.pitchers[playerId] || {}).ip || 0; }
+  function overLimitBadge(cumulative, carded) {
+    if (carded === null || carded === undefined) return "";
+    return cumulative >= carded ? ` <span class="badge badge-overlimit">OVER LIMIT</span>` : "";
+  }
+
   const rosterViewButtons = document.querySelectorAll("[data-rosterview]");
   const rosterViewPanels = {
     hitters: document.getElementById("rosterview-hitters"),
@@ -963,7 +1286,7 @@
       const rows = groups[pos].slice().sort((a, b) => a.name.localeCompare(b.name)).map(p => {
         const entry = entryForPosition(p, pos);
         const detail = (pos === "DH" && !entry) ? "DH" : fieldingDetail(entry, p.fielding.sharedOFArm);
-        const dimClass = p.status !== "Majors" ? " roster-row-dim" : "";
+        const dimClass = isMajors(p) ? "" : " roster-row-dim";
         return `
           <tr class="${dimClass}">
             <td>
@@ -971,14 +1294,14 @@
               <div class="text-[11px] font-mono" style="color: var(--ink-soft);">${escapeHtml(p.mlbTeam || "—")}</div>
             </td>
             <td class="font-mono text-[12px]">${escapeHtml(detail)}</td>
-            <td class="font-mono">${fmtNum(p.ab)}</td>
+            <td class="font-mono">${fmtNum(p.ab)}${overLimitBadge(cumulativeAB(p.id), p.ab)}</td>
             <td class="font-mono">${fmtNum(p.pa)}</td>
             <td>${ironBadge(p.ironStatus)}</td>
             <td>
               <select class="status-select" data-player-id="${p.id}">
-                <option value="Majors" ${p.status === "Majors" ? "selected" : ""}>Majors</option>
-                <option value="Minors" ${p.status === "Minors" ? "selected" : ""}>Minors</option>
-                <option value="Injured" ${p.status === "Injured" ? "selected" : ""}>Injured</option>
+                <option value="Majors" ${(String(p.status || "").trim().toLowerCase() === "majors") ? "selected" : ""}>Majors</option>
+                <option value="Minors" ${(String(p.status || "").trim().toLowerCase() === "minors") ? "selected" : ""}>Minors</option>
+                <option value="Injured" ${(String(p.status || "").trim().toLowerCase() === "injured") ? "selected" : ""}>Injured</option>
               </select>
             </td>
           </tr>`;
@@ -1016,6 +1339,7 @@
         <div class="pitcher-line">
           <span>${escapeHtml(formatPitcherLine(p))}</span>
           ${p.endurance.isCloser ? `<span class="badge badge-closer">★ CLOSER</span>` : ""}
+          ${overLimitBadge(cumulativeIP(p.id), p.ip)}
         </div>`).join("");
     }
 
@@ -1088,7 +1412,13 @@
     reader.onload = () => {
       const { players, skipped } = parseHittersFromFile(String(reader.result));
       const oldStatusByName = new Map(state.hitters.map(p => [p.name, p.status]));
-      players.forEach(p => { p.status = oldStatusByName.get(p.name) || "Majors"; });
+      players.forEach(p => {
+        const preserved = oldStatusByName.get(p.name);
+        // Force-initialize the instant the row is imported — never leave a
+        // player with a missing/undefined status, whatever the source was.
+        p.status = preserved ? preserved : "Majors";
+        if (!p.status) p.status = "Majors";
+      });
       state.hitters = players;
       saveData();
       afterImportRefresh();
@@ -1105,6 +1435,12 @@
     const reader = new FileReader();
     reader.onload = () => {
       const { players, skipped } = parsePitchersFromFile(String(reader.result));
+      const oldPitcherStatusByName = new Map(state.pitchers.map(p => [p.name, p.status]));
+      players.forEach(p => {
+        const preserved = oldPitcherStatusByName.get(p.name);
+        p.status = preserved ? preserved : "Majors";
+        if (!p.status) p.status = "Majors";
+      });
       state.pitchers = players;
       saveData();
       afterImportRefresh();
@@ -1251,10 +1587,14 @@
   const lineupTeamSelect = document.getElementById("lineup-team-select");
   const lineupOppTeamSelect = document.getElementById("lineup-opp-team-select");
   const lineupOppPitcherSelect = document.getElementById("lineup-opp-pitcher-select");
-  const lineupBallparkSelect = document.getElementById("lineup-ballpark-select");
-  const lineupBpsAdjInput = document.getElementById("lineup-bps-adj");
-  const lineupBphrAdjInput = document.getElementById("lineup-bphr-adj");
-  const lineupWeatherSelect = document.getElementById("lineup-weather-select");
+  const lineupHomeAwaySelect = document.getElementById("lineup-homeaway-select");
+  const lineupSeasonSplitSelect = document.getElementById("lineup-season-split-select");
+  const lineupD20Input = document.getElementById("lineup-d20-input");
+  const lineupManualBpsL = document.getElementById("lineup-manual-bps-l");
+  const lineupManualBpsR = document.getElementById("lineup-manual-bps-r");
+  const lineupManualBphrL = document.getElementById("lineup-manual-bphr-l");
+  const lineupManualBphrR = document.getElementById("lineup-manual-bphr-r");
+  const weatherStatusPanel = document.getElementById("weather-status-panel");
   const generateLineupBtn = document.getElementById("generate-lineup-btn");
   const lineupGenerateNote = document.getElementById("lineup-generate-note");
   const lineupResultCard = document.getElementById("lineup-result-card");
@@ -1280,16 +1620,19 @@
       `<option value="${escapeHtml(t)}">${t === "Free Agent" ? "Free Agents (fre)" : escapeHtml(t)}</option>`
     ).join("");
     lineupTeamSelect.innerHTML = teamOptions;
-    lineupTeamSelect.value = teams.includes(prevMine) ? prevMine : teams[0];
+    // Default "My Team" to Detroit Motors when present and nothing chosen yet.
+    lineupTeamSelect.value = teams.includes(prevMine) ? prevMine
+      : (teams.includes("Detroit Motors") ? "Detroit Motors" : teams[0]);
 
     lineupOppTeamSelect.innerHTML = teamOptions;
     const prevOpp = state.lineupPrefs.opponentTeam;
     lineupOppTeamSelect.value = teams.includes(prevOpp) ? prevOpp : teams.find(t => t !== lineupTeamSelect.value) || teams[0];
 
-    lineupBallparkSelect.value = state.lineupPrefs.ballpark || "Neutral / Not Set";
-    lineupBpsAdjInput.value = state.lineupPrefs.bpsAdj ?? 0;
-    lineupBphrAdjInput.value = state.lineupPrefs.bphrAdj ?? 0;
-    lineupWeatherSelect.value = state.lineupPrefs.weather || "Fair";
+    lineupHomeAwaySelect.value = state.lineupPrefs.homeAway || "Home";
+    lineupSeasonSplitSelect.value = state.lineupPrefs.seasonSplit || "jjaNight";
+    lineupD20Input.value = state.lineupPrefs.d20Roll ?? 10;
+    restoreOrDefaultOverrides(resolveWeather().values);
+    renderWeatherStatusPanel(false);
 
     renderOpponentPitcherSelect();
   }
@@ -1323,45 +1666,231 @@
     state.lineupPrefs.opponentPitcherId = lineupOppPitcherSelect.value;
     saveData();
   });
-  lineupBallparkSelect.addEventListener("change", () => {
-    state.lineupPrefs.ballpark = lineupBallparkSelect.value;
+  lineupTeamSelect.addEventListener("change", () => renderWeatherStatusPanel(true));
+  lineupOppTeamSelect.addEventListener("change", () => renderWeatherStatusPanel(true));
+  lineupHomeAwaySelect.addEventListener("change", () => {
+    state.lineupPrefs.homeAway = lineupHomeAwaySelect.value;
     saveData();
+    renderWeatherStatusPanel(true);
   });
-  lineupBpsAdjInput.addEventListener("input", () => {
-    state.lineupPrefs.bpsAdj = Number(lineupBpsAdjInput.value) || 0;
+  lineupSeasonSplitSelect.addEventListener("change", () => {
+    state.lineupPrefs.seasonSplit = lineupSeasonSplitSelect.value;
     saveData();
+    renderWeatherStatusPanel(true);
   });
-  lineupBphrAdjInput.addEventListener("input", () => {
-    state.lineupPrefs.bphrAdj = Number(lineupBphrAdjInput.value) || 0;
+  lineupD20Input.addEventListener("input", () => {
+    state.lineupPrefs.d20Roll = Number(lineupD20Input.value) || 1;
     saveData();
+    renderWeatherStatusPanel(true);
   });
-  lineupWeatherSelect.addEventListener("change", () => {
-    state.lineupPrefs.weather = lineupWeatherSelect.value;
-    saveData();
+  // Manual override fields: typing into them just persists the value —
+  // they are NOT recomputed until the user changes team/home-away/split/roll
+  // again (see renderWeatherStatusPanel's autofill argument).
+  [lineupManualBpsL, lineupManualBpsR, lineupManualBphrL, lineupManualBphrR].forEach(input => {
+    input.addEventListener("input", persistManualOverrides);
   });
 
+  // ==========================================================================
+  // WEATHER / BALLPARK d20 MATRIX — hardcoded per-team chart. Each team has
+  // 4 range tables (one per Time/Season Split) mapping a d20 roll to
+  // GOOD/AVERAGE/BAD, and a set of BPS_L/BPS_R/BPHR_L/BPHR_R values for each
+  // of those three outcomes. Teams whose chart has no distinct "Bad" bucket
+  // in the spec reuse the AVERAGE values for BAD.
+  // ==========================================================================
+  const WEATHER_MATRIX = {
+    "Baltimore Orioles": {
+      jjaNight: [[1,10,"GOOD"],[11,17,"AVERAGE"],[18,20,"BAD"]],
+      jjaDay: [[1,7,"GOOD"],[8,17,"AVERAGE"],[18,20,"BAD"]],
+      amsoNight: [[1,8,"GOOD"],[9,15,"AVERAGE"],[16,20,"BAD"]],
+      amsoDay: [[1,4,"GOOD"],[5,15,"AVERAGE"],[16,20,"BAD"]],
+      values: { GOOD:{bpsL:17,bpsR:5,bphrL:18,bphrR:15}, AVERAGE:{bpsL:16,bpsR:4,bphrL:14,bphrR:17}, BAD:{bpsL:14,bpsR:2,bphrL:15,bphrR:12} },
+    },
+    "Chicago Cubs": {
+      jjaNight: [[1,11,"GOOD"],[12,17,"AVERAGE"],[18,20,"BAD"]],
+      jjaDay: [[1,7,"GOOD"],[8,17,"AVERAGE"],[18,20,"BAD"]],
+      amsoNight: [[1,7,"GOOD"],[8,14,"AVERAGE"],[15,20,"BAD"]],
+      amsoDay: [[1,4,"GOOD"],[5,13,"AVERAGE"],[14,20,"BAD"]],
+      values: { GOOD:{bpsL:7,bpsR:4,bphrL:11,bphrR:12}, AVERAGE:{bpsL:5,bpsR:1,bphrL:2,bphrR:8}, BAD:{bpsL:2,bpsR:0,bphrL:2,bphrR:1} },
+    },
+    "Chicago Islanders": {
+      jjaNight: [[1,11,"GOOD"],[12,17,"AVERAGE"],[18,20,"BAD"]],
+      jjaDay: [[1,7,"GOOD"],[8,17,"AVERAGE"],[18,20,"BAD"]],
+      amsoNight: [[1,7,"GOOD"],[8,14,"AVERAGE"],[15,20,"BAD"]],
+      amsoDay: [[1,4,"GOOD"],[5,13,"AVERAGE"],[14,20,"BAD"]],
+      values: { GOOD:{bpsL:8,bpsR:8,bphrL:10,bphrR:10}, AVERAGE:{bpsL:6,bpsR:6,bphrL:8,bphrR:8}, BAD:{bpsL:3,bpsR:3,bphrL:5,bphrR:5} },
+    },
+    "Cincinnati Roses": {
+      jjaNight: [[1,12,"GOOD"],[13,17,"AVERAGE"],[18,20,"BAD"]],
+      jjaDay: [[1,7,"GOOD"],[8,17,"AVERAGE"],[18,20,"BAD"]],
+      amsoNight: [[1,8,"GOOD"],[9,15,"AVERAGE"],[16,20,"BAD"]],
+      amsoDay: [[1,4,"GOOD"],[5,14,"AVERAGE"],[15,20,"BAD"]],
+      values: { GOOD:{bpsL:8,bpsR:8,bphrL:17,bphrR:20}, AVERAGE:{bpsL:6,bpsR:6,bphrL:15,bphrR:18}, BAD:{bpsL:3,bpsR:3,bphrL:12,bphrR:15} },
+    },
+    "Detroit Motors": {
+      jjaNight: [[1,12,"GOOD"],[13,17,"AVERAGE"],[18,20,"BAD"]],
+      jjaDay: [[1,7,"GOOD"],[8,17,"AVERAGE"],[18,20,"BAD"]],
+      amsoNight: [[1,7,"GOOD"],[8,12,"AVERAGE"],[13,20,"BAD"]],
+      amsoDay: [[1,3,"GOOD"],[4,13,"AVERAGE"],[14,20,"BAD"]],
+      values: { GOOD:{bpsL:10,bpsR:10,bphrL:12,bphrR:12}, AVERAGE:{bpsL:9,bpsR:9,bphrL:10,bphrR:10}, BAD:{bpsL:8,bpsR:8,bphrL:7,bphrR:7} },
+    },
+    "Los Angeles Thieves": {
+      jjaNight: [[1,9,"GOOD"],[10,19,"AVERAGE"],[20,20,"BAD"]],
+      jjaDay: [[1,16,"GOOD"],[17,19,"AVERAGE"],[20,20,"BAD"]],
+      amsoNight: [[1,12,"GOOD"],[13,19,"AVERAGE"],[20,20,"BAD"]],
+      amsoDay: [[1,7,"GOOD"],[8,19,"AVERAGE"],[20,20,"BAD"]],
+      values: { GOOD:{bpsL:2,bpsR:2,bphrL:18,bphrR:12}, AVERAGE:{bpsL:1,bpsR:1,bphrL:16,bphrR:10}, BAD:{bpsL:0,bpsR:0,bphrL:15,bphrR:9} },
+    },
+    "Miami Marlins": {
+      jjaNight: [[1,19,"GOOD"],[20,20,"AVERAGE"]],
+      jjaDay: [[1,17,"GOOD"],[18,20,"AVERAGE"]],
+      amsoNight: [[1,15,"GOOD"],[16,20,"AVERAGE"]],
+      amsoDay: [[1,17,"GOOD"],[18,20,"AVERAGE"]],
+      values: (() => { const avg = {bpsL:12,bpsR:9,bphrL:3,bphrR:9}; return { GOOD:{bpsL:14,bpsR:11,bphrL:11,bphrR:5}, AVERAGE: avg, BAD: avg }; })(),
+    },
+    "Milwaukee Ueckers": {
+      jjaNight: [[1,13,"GOOD"],[14,20,"AVERAGE"]],
+      jjaDay: [[1,7,"GOOD"],[8,20,"AVERAGE"]],
+      amsoNight: [[1,4,"GOOD"],[5,20,"AVERAGE"]],
+      amsoDay: [[1,10,"GOOD"],[11,20,"AVERAGE"]],
+      values: (() => { const avg = {bpsL:2,bpsR:2,bphrL:11,bphrR:11}; return { GOOD:{bpsL:3,bpsR:3,bphrL:13,bphrR:13}, AVERAGE: avg, BAD: avg }; })(),
+    },
+    "New York Survivors": {
+      jjaNight: [[1,12,"GOOD"],[13,17,"AVERAGE"],[18,20,"BAD"]],
+      jjaDay: [[1,7,"GOOD"],[8,17,"AVERAGE"],[18,20,"BAD"]],
+      amsoNight: [[1,4,"GOOD"],[5,14,"AVERAGE"],[15,20,"BAD"]],
+      amsoDay: [[1,8,"GOOD"],[9,15,"AVERAGE"],[16,20,"BAD"]],
+      values: { GOOD:{bpsL:2,bpsR:2,bphrL:8,bphrR:14}, AVERAGE:{bpsL:1,bpsR:1,bphrL:13,bphrR:7}, BAD:{bpsL:0,bpsR:0,bphrL:5,bphrR:11} },
+    },
+    "Pittsburgh Pirates": {
+      jjaNight: [[1,7,"GOOD"],[8,17,"AVERAGE"],[18,20,"BAD"]],
+      jjaDay: [[1,12,"GOOD"],[13,17,"AVERAGE"],[18,20,"BAD"]],
+      amsoNight: [[1,4,"GOOD"],[5,13,"AVERAGE"],[14,20,"BAD"]],
+      amsoDay: [[1,8,"GOOD"],[9,14,"AVERAGE"],[15,20,"BAD"]],
+      values: { GOOD:{bpsL:17,bpsR:17,bphrL:6,bphrR:6}, AVERAGE:{bpsL:15,bpsR:15,bphrL:4,bphrR:4}, BAD:{bpsL:12,bpsR:12,bphrL:1,bphrR:1} },
+    },
+    "San Diego A-Sox": {
+      jjaNight: [[1,13,"GOOD"],[14,19,"AVERAGE"],[20,20,"BAD"]],
+      jjaDay: [[1,8,"GOOD"],[9,19,"AVERAGE"],[20,20,"BAD"]],
+      amsoNight: [[1,6,"GOOD"],[7,19,"AVERAGE"],[20,20,"BAD"]],
+      amsoDay: [[1,10,"GOOD"],[11,19,"AVERAGE"],[20,20,"BAD"]],
+      values: { GOOD:{bpsL:2,bpsR:2,bphrL:11,bphrR:11}, AVERAGE:{bpsL:1,bpsR:1,bphrL:9,bphrR:9}, BAD:{bpsL:0,bpsR:0,bphrL:8,bphrR:8} },
+    },
+    "San Francisco Quakes": {
+      jjaNight: [[1,6,"GOOD"],[7,10,"AVERAGE"],[11,20,"BAD"]],
+      jjaDay: [[1,10,"GOOD"],[11,19,"AVERAGE"],[20,20,"BAD"]],
+      amsoNight: [[1,5,"GOOD"],[6,8,"AVERAGE"],[9,20,"BAD"]],
+      amsoDay: [[1,8,"GOOD"],[9,18,"AVERAGE"],[19,20,"BAD"]],
+      values: { GOOD:{bpsL:12,bpsR:12,bphrL:6,bphrR:6}, AVERAGE:{bpsL:11,bpsR:11,bphrL:4,bphrR:4}, BAD:{bpsL:10,bpsR:10,bphrL:2,bphrR:2} },
+    },
+    "Tampa Bay Phenom": {
+      jjaNight: [[1,6,"GOOD"],[7,15,"AVERAGE"],[16,20,"BAD"]],
+      jjaDay: [[1,1,"GOOD"],[2,6,"AVERAGE"],[7,20,"BAD"]],
+      amsoNight: [[1,7,"GOOD"],[8,16,"AVERAGE"],[17,20,"BAD"]],
+      amsoDay: [[1,11,"GOOD"],[12,16,"AVERAGE"],[17,20,"BAD"]],
+      values: { GOOD:{bpsL:9,bpsR:18,bphrL:13,bphrR:16}, AVERAGE:{bpsL:5,bpsR:14,bphrL:9,bphrR:12}, BAD:{bpsL:4,bpsR:13,bphrL:11,bphrR:8} },
+    },
+    "Washington Senators": {
+      jjaNight: [[1,7,"GOOD"],[8,17,"AVERAGE"],[18,20,"BAD"]],
+      jjaDay: [[1,11,"GOOD"],[12,17,"AVERAGE"],[18,20,"BAD"]],
+      amsoNight: [[1,9,"GOOD"],[10,16,"AVERAGE"],[17,20,"BAD"]],
+      amsoDay: [[1,5,"GOOD"],[6,15,"AVERAGE"],[16,20,"BAD"]],
+      values: { GOOD:{bpsL:11,bpsR:11,bphrL:10,bphrR:10}, AVERAGE:{bpsL:10,bpsR:10,bphrL:7,bphrR:7}, BAD:{bpsL:8,bpsR:8,bphrL:6,bphrR:6} },
+    },
+  };
+
+  function classifyRoll(ranges, roll) {
+    for (const [lo, hi, label] of ranges) { if (roll >= lo && roll <= hi) return label; }
+    return ranges[ranges.length - 1][2];
+  }
+
+  // Resolves the active ballpark (Home -> my team's park, Away -> opponent's),
+  // the current condition (GOOD/AVERAGE/BAD) from the d20 roll + split, and
+  // the four BPS/BPHR values currently feeding the matchup calculation. Teams
+  // not found in the hardcoded matrix return null — treated as no adjustment.
+  // Case/whitespace-insensitive lookup — a CSV team name like "detroit motors "
+  // or "DETROIT MOTORS" should still resolve against the exact chart key.
+  function findWeatherChart(teamName) {
+    if (WEATHER_MATRIX[teamName]) return WEATHER_MATRIX[teamName];
+    const norm = String(teamName || "").trim().toLowerCase();
+    const key = Object.keys(WEATHER_MATRIX).find(k => k.toLowerCase() === norm);
+    return key ? WEATHER_MATRIX[key] : null;
+  }
+
+  function resolveWeather() {
+    const homeAway = lineupHomeAwaySelect.value || "Home";
+    const splitKey = lineupSeasonSplitSelect.value || "jjaNight";
+    const roll = Math.min(20, Math.max(1, Number(lineupD20Input.value) || 1));
+    const parkTeam = homeAway === "Home" ? lineupTeamSelect.value : lineupOppTeamSelect.value;
+    const chart = findWeatherChart(parkTeam);
+    if (!chart) return { parkTeam, homeAway, roll, condition: null, values: null };
+    const condition = classifyRoll(chart[splitKey] || chart.jjaNight, roll);
+    return { parkTeam, homeAway, roll, condition, values: chart.values[condition] };
+  }
+
+  // Reads the 4 manual override fields' CURRENT values — this, not the raw
+  // chart lookup, is what actually feeds calcMatchup. The chart lookup only
+  // supplies the auto-filled defaults; the user's typed-over numbers win.
+  function getOverrideValues() {
+    return {
+      bpsL: Number(lineupManualBpsL.value) || 0,
+      bpsR: Number(lineupManualBpsR.value) || 0,
+      bphrL: Number(lineupManualBphrL.value) || 0,
+      bphrR: Number(lineupManualBphrR.value) || 0,
+    };
+  }
+
+  function persistManualOverrides() {
+    state.lineupPrefs.manualOverrides = getOverrideValues();
+    saveData();
+  }
+
+  function autofillOverridesFromChart(chartValues) {
+    if (!chartValues) return;
+    lineupManualBpsL.value = chartValues.bpsL;
+    lineupManualBpsR.value = chartValues.bpsR;
+    lineupManualBphrL.value = chartValues.bphrL;
+    lineupManualBphrR.value = chartValues.bphrR;
+    persistManualOverrides();
+  }
+
+  // On first load only: restore whatever the user last had typed in, or
+  // fall back to the chart defaults if nothing was ever saved.
+  function restoreOrDefaultOverrides(chartValues) {
+    const saved = state.lineupPrefs.manualOverrides;
+    if (saved) {
+      lineupManualBpsL.value = saved.bpsL;
+      lineupManualBpsR.value = saved.bpsR;
+      lineupManualBphrL.value = saved.bphrL;
+      lineupManualBphrR.value = saved.bphrR;
+    } else if (chartValues) {
+      autofillOverridesFromChart(chartValues);
+    }
+  }
+
+  // autofill=true (any env control changed) overwrites the 4 manual fields
+  // with the freshly resolved chart defaults, per the "d20 readout" spec.
+  // autofill=false (e.g. initial page load) just displays the status text
+  // and leaves whatever is already in the fields alone.
+  function renderWeatherStatusPanel(autofill) {
+    const w = resolveWeather();
+    if (!w.condition) {
+      weatherStatusPanel.innerHTML = "";
+      return;
+    }
+    if (autofill) autofillOverridesFromChart(w.values);
+    const conditionColor = w.condition === "GOOD" ? "#1B5E20" : w.condition === "BAD" ? "#B33018" : "#8A6D1A";
+    weatherStatusPanel.innerHTML = `
+      <div class="flex flex-wrap items-center gap-3">
+        <span>${escapeHtml(w.parkTeam)} (${w.homeAway}) — Roll: ${w.roll}</span>
+        <span class="font-bold" style="color: ${conditionColor};">${w.condition}</span>
+        <span style="color: var(--ink-soft);">(chart default — override fields below are what's actually used)</span>
+      </div>`;
+  }
+
   // --------------------------------------------------------------------------
-  // MATCHUP OPS ENGINE — the 50/50 card-split formula.
-  //
-  // Which of the batter's two splits (vsLHP / vsRHP) gets used depends on the
-  // PITCHER's throwing hand (that's who's actually on the mound), and which
-  // of the PITCHER's two splits (vsLHB / vsRHB) gets used depends on which
-  // side of the plate the BATTER effectively stands on against that pitcher
-  // (a switch-hitter always bats opposite the pitcher's hand):
-  //
-  //   Pitcher throws L:
-  //     Batter is L        -> batter.vsLHP + pitcher.vsLHB
-  //     Batter is R or S    -> batter.vsLHP + pitcher.vsRHB
-  //   Pitcher throws R:
-  //     Batter is R        -> batter.vsRHP + pitcher.vsRHB
-  //     Batter is L or S    -> batter.vsRHP + pitcher.vsLHB
-  //
-  // Since this data is raw Strat-O-Matic dice-range counts rather than true
-  // rate stats (no real OBP/SLG to add), "Matchup OPS" here is a deliberately
-  // simple proxy: the average On-Base count plus the average Total-Base count
-  // (each blended 50/50 between batter and pitcher), nudged by the ballpark
-  // and weather modifiers below. It's meant for RELATIVE ranking of your own
-  // roster against one pitcher, not as a literal on-base/slugging percentage.
+  // Handedness matchup split-picker: which of the batter's two splits
+  // (vsLHP/vsRHP) and which of the pitcher's two splits (vsLHB/vsRHB) apply,
+  // based on the pitcher's throwing hand and the batter's side of the plate.
   // --------------------------------------------------------------------------
   function pickSplits(batter, pitcher) {
     if (pitcher.throwsHand === "L") {
@@ -1374,32 +1903,156 @@
       : { batterSplit: batter.vsRHP, pitcherSplit: pitcher.vsLHB }; // Left or Switch
   }
 
-  function calcMatchup(batter, pitcher, envAdj) {
-    const { batterSplit, pitcherSplit } = pickSplits(batter, pitcher);
-    const avg = (a, b) => ((a ?? 0) + (b ?? 0)) / 2;
+  function titleCase(str) {
+    return String(str || "").toLowerCase().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  }
 
-    const ob = avg(batterSplit.ob, pitcherSplit.ob);
-    const h = avg(batterSplit.h, pitcherSplit.h);
-    const hr = avg(batterSplit.hr, pitcherSplit.hr);
-    let tb = avg(batterSplit.tb, pitcherSplit.tb);
+  // --------------------------------------------------------------------------
+  // RIGID MULTI-STAGE MATCHUP ENGINE — exact spreadsheet formulas, computed
+  // from RAW dice-count columns (a hitter's own H/OB/TB/Clutch counts and a
+  // pitcher's own H/OB/TB counts, plus each side's ballpark-code-derived
+  // BPS/BPHR), NOT pre-computed rate stats. Every raw value is coerced with
+  // n0() (parseFloat || 0) right where it's used, so a blank cell can never
+  // produce NaN.
+  //
+  // STAGE 1 — each side's own split, computed independently:
+  //   Hitter vs LHP (uses F4/G4, selected by the batter's OWN bats):
+  //     F4 = Right/Switch bats -> BPS_RHB,  Left bats -> BPS_LHB
+  //     G4 = Right/Switch bats -> BPHR_RHB, Left bats -> BPHR_LHB
+  //     denom = 108 - (Raw_OB - Raw_Hits)
+  //     AVE = (Raw_Hits + F4*Raw_BP_Singles + G4*Raw_BP_HR) / denom
+  //     OB  = (Raw_OB   + F4*Raw_BP_Singles + G4*Raw_BP_HR) / 108
+  //     SLG = (Raw_TB   + F4*Raw_BP_Singles + G4*Raw_BP_HR*4) / denom
+  //     CLA = (Raw_Hits + Raw_Clutch + F4*Raw_BP_Singles + G4*Raw_BP_HR) / denom
+  //     CLO = (Raw_OB   + Raw_Clutch + F4*Raw_BP_Singles + G4*Raw_BP_HR) / 108
+  //   Hitter vs RHP (uses S4/T4, opposite selection):
+  //     S4 = Left/Switch bats -> BPS_LHB,  Right bats -> BPS_RHB
+  //     T4 = Left/Switch bats -> BPHR_LHB, Right bats -> BPHR_RHB
+  //     (same AVE/OB/SLG/CLA/CLO formulas, with S4/T4 in place of F4/G4)
+  //   Pitcher vs LHB / vs RHB: same AVE/OB/SLG shape, using the pitcher's own
+  //   raw H/OB/TB and the FIXED Manual_BPS_Left/Right, Manual_BPHR_Left/Right
+  //   factors (Left factors for the pitcher's vsLHB split, Right factors for
+  //   vsRHB — never dependent on the batter).
+  //
+  // STAGE 2 — standard 50/50 cross-handedness combination (divide by 2):
+  //   vs LHP: R/S batter -> Hitter_L + Pitcher_R.  L batter -> Hitter_L + Pitcher_L.
+  //   vs RHP: L/S batter -> Hitter_R + Pitcher_L.  R batter -> Hitter_R + Pitcher_R.
+  //   OPS = OB + SLG.  OPS-C = CLO + SLG.
+  // --------------------------------------------------------------------------
+  function n0(v) {
+    const n = parseFloat(v);
+    return isNaN(n) ? 0 : n;
+  }
 
-    // ---- Ballpark / Weather adjustment block -------------------------------
-    // Wind Out nudges home-run weight up, Wind In nudges it down; the manual
-    // ballpark BPS/BPHR adjustment fields add or subtract directly. Both feed
-    // into a small bump on the blended Total-Bases figure used for "power".
-    let bphrAdj = envAdj.bphrAdj || 0;
-    if (envAdj.weather === "Wind Out") bphrAdj += 2;
-    else if (envAdj.weather === "Wind In") bphrAdj -= 2;
-    const bpsAdj = envAdj.bpsAdj || 0;
-    const bps = avg(batterSplit.bps, pitcherSplit.bps) + bpsAdj;
-    const bphr = avg(batterSplit.bphr, pitcherSplit.bphr) + bphrAdj;
-    tb = tb + bps * 0.1 + bphr * 0.1;
-    // -------------------------------------------------------------------------
+  function hitterFactors(bats, ov) {
+    const bpsLHB = n0(ov.bpsL) / 20, bpsRHB = n0(ov.bpsR) / 20;
+    const bphrLHB = n0(ov.bphrL) / 20, bphrRHB = n0(ov.bphrR) / 20;
+    const isLefty = bats === "Left";
+    const isRighty = bats === "Right";
+    return {
+      F4: isLefty ? bpsLHB : bpsRHB,
+      G4: isLefty ? bphrLHB : bphrRHB,
+      S4: isRighty ? bpsRHB : bpsLHB,
+      T4: isRighty ? bphrRHB : bphrLHB,
+    };
+  }
 
-    const dp = avg(batterSplit.dp, pitcherSplit.dp);
-    const cl = batterSplit.cl ?? 0;
-    const ops = ob + tb;
-    return { ob, tb, h, hr, dp, cl, ops };
+  function hitterSplit(raw, singlesFactor, hrFactor) {
+    const hits = n0(raw.h), ob = n0(raw.ob), tb = n0(raw.tb), clutch = n0(raw.cl);
+    const bpSingles = n0(raw.bps), bpHR = n0(raw.bphr);
+    const denom = 108 - (ob - hits) || 1;
+    return {
+      ave: (hits + singlesFactor * bpSingles + hrFactor * bpHR) / denom,
+      ob: (ob + singlesFactor * bpSingles + hrFactor * bpHR) / 108,
+      slg: (tb + singlesFactor * bpSingles + hrFactor * bpHR * 4) / denom,
+      cla: (hits + clutch + singlesFactor * bpSingles + hrFactor * bpHR) / denom,
+      clo: (ob + clutch + singlesFactor * bpSingles + hrFactor * bpHR) / 108,
+    };
+  }
+
+  function pitcherSplit(raw, bpsFactor, bphrFactor) {
+    const h = n0(raw.h), ob = n0(raw.ob), tb = n0(raw.tb);
+    const bps = n0(raw.bps), bphr = n0(raw.bphr);
+    const denom = 108 - (ob - h) || 1;
+    return {
+      ave: (h + bpsFactor * bps + bphrFactor * bphr) / denom,
+      ob: (ob + bpsFactor * bps + bphrFactor * bphr) / 108,
+      slg: (tb + bpsFactor * bps + bphrFactor * bphr * 4) / denom,
+    };
+  }
+
+  function calcMatchup(batter, pitcher, override) {
+    const ov = override || {};
+    const bpsL = n0(ov.bpsL), bpsR = n0(ov.bpsR), bphrL = n0(ov.bphrL), bphrR = n0(ov.bphrR);
+
+    const { F4, G4, S4, T4 } = hitterFactors(batter.bats, { bpsL, bpsR, bphrL, bphrR });
+    const hitterL = hitterSplit(batter.vsLHP, F4, G4);
+    const hitterR = hitterSplit(batter.vsRHP, S4, T4);
+    const pitcherL = pitcherSplit(pitcher.vsLHB, bpsL / 20, bphrL / 20);
+    const pitcherR = pitcherSplit(pitcher.vsRHB, bpsR / 20, bphrR / 20);
+
+    let hitterSide, pitcherSide;
+    if (pitcher.throwsHand === "L") {
+      if (batter.bats === "Left") { hitterSide = hitterL; pitcherSide = pitcherL; }
+      else { hitterSide = hitterL; pitcherSide = pitcherR; } // Right or Switch
+    } else {
+      if (batter.bats === "Right") { hitterSide = hitterR; pitcherSide = pitcherR; }
+      else { hitterSide = hitterR; pitcherSide = pitcherL; } // Left or Switch
+    }
+
+    const avg = (a, b) => (n0(a) + n0(b)) / 2;
+    const ave = avg(hitterSide.ave, pitcherSide.ave);
+    const ob = avg(hitterSide.ob, pitcherSide.ob);
+    const slg = avg(hitterSide.slg, pitcherSide.slg);
+    const ops = ob + slg;
+    const cla = avg(hitterSide.cla, pitcherSide.ave);
+    const clo = avg(hitterSide.clo, pitcherSide.ob);
+    const opsC = clo + slg;
+
+    // K%/DP% — combined raw counts as a fraction of the same 108-scale used
+    // everywhere else, then rendered as a percentage. Previously this raw
+    // blended count was displayed AS the percentage with no /108 conversion
+    // at all, which is exactly why values rounded to whole numbers instead
+    // of landing on the exact tenth (e.g. 9.3% instead of rounding to 10%).
+    const { batterSplit, pitcherSplit: rawPitcherSplit } = pickSplits(batter, pitcher);
+    const kPct = (n0(batterSplit.so) + n0(rawPitcherSplit.k)) / 2 / 108 * 100;
+    const dpPct = (n0(batterSplit.dp) + n0(rawPitcherSplit.dp)) / 2 / 108 * 100;
+
+    const powerRaw = pitcher.throwsHand === "L" ? batter.powerL : batter.powerR;
+    const power = (powerRaw && String(powerRaw).trim().toLowerCase().startsWith("w")) ? "W" : "N";
+
+    return {
+      ave, ob, slg, ops, cla, clo, opsC, kPct, dpPct, power,
+      dp: dpPct, cl: cla - ave,
+    };
+  }
+
+  // clutchMode: when true, pivots the primary AVE/OB/OPS trio to display the
+  // CLA/CLO/OPS-C clutch-adjusted values under those same labels instead —
+  // a full pivot ("Clutch Situation Active"), not an addition.
+  function statLineFor(pos, m, clutchMode) {
+    const label = titleCase(positionLabel(pos)) + (clutchMode ? " (Clutch)" : "");
+    if (clutchMode) {
+      return `${label} - AVE: ${m.cla.toFixed(3)} | OB: ${m.clo.toFixed(3)} | SLG: ${m.slg.toFixed(3)} | `
+        + `OPS: ${m.opsC.toFixed(3)} | K: ${m.kPct.toFixed(1)}% | DP: ${m.dpPct.toFixed(1)}% | P: ${m.power}`;
+    }
+    return `${label} - AVE: ${m.ave.toFixed(3)} | OB: ${m.ob.toFixed(3)} | SLG: ${m.slg.toFixed(3)} | `
+      + `OPS: ${m.ops.toFixed(3)} | CLA: ${m.cla.toFixed(3)} | CLO: ${m.clo.toFixed(3)} | OPS-C: ${m.opsC.toFixed(3)} | `
+      + `K: ${m.kPct.toFixed(1)}% | DP: ${m.dpPct.toFixed(1)}% | P: ${m.power}`;
+  }
+
+  // Shared bench-row line builder — same 11-category stat block as a
+  // starting-lineup slot (statLineFor), but since a bench player isn't
+  // assigned to one field position yet, the "Position" label uses their
+  // primary eligible position, and DEF prints their ENTIRE raw multi-
+  // position Column AG fielding string (not just one position's rating),
+  // so every utility spot they can cover is visible at a glance.
+  function benchStatLine(p, pitcher, weatherValues, clutchMode) {
+    const m = calcMatchup(p, pitcher, weatherValues || {});
+    const primaryPos = eligiblePositions(p)[0] || "DH";
+    const nameLine = `${p.name} (Bat: ${p.bats[0]}) | ${p.jhmlTeam || "—"}`;
+    const line = statLineFor(primaryPos, m, clutchMode) + ` | DEF: ${p.fieldingRaw || "—"}`;
+    return { nameLine, line };
   }
 
   function parseStealingNum(raw) {
@@ -1446,73 +2099,211 @@
   }
 
   // --------------------------------------------------------------------------
-  // 1-through-9 BATTING ORDER SOLVER. The defensive specialist for #9 is
-  // chosen FIRST (best defensive rating at their assigned position) and
-  // removed from the pool, so the remaining role picks (#1-#8) never have to
-  // "fight" the #9 rule — each role then picks the best fit from whoever's
-  // left, one at a time, in the order below.
+  // 1-through-9 ROLE-BASED SEQUENCING.
+  //   #3 is picked FIRST and locked (absolute highest OPS of the 9), so every
+  //   other role picks from whoever's left and can never accidentally bump #3.
+  //   #1/#2 use a "top-3 shortlist by the primary stat, then re-rank by the
+  //   secondary trait" pattern to approximate "2nd best X, but only among
+  //   players who also have Y" without needing a literal rank-2 tie-break.
+  //   #5 implements the stated exception literally: a higher-OPS negative-
+  //   clutch hitter beats a lower-OPS positive-clutch one.
+  //   #9 checks the BENCH (eligible hitters not already in the 9) for a
+  //   better defender at that same position and swaps them in if found —
+  //   `allEligibleHitters` must be the full Majors-eligible pool, not just
+  //   the starting 9, for this to have anyone to check against.
   // --------------------------------------------------------------------------
-  function buildBattingOrder(assignment, matchups) {
-    const entries = Object.entries(assignment).map(([pos, player]) => ({ pos, player }));
-    let pool = entries.slice();
+  function buildBattingOrder(assignment, matchups, allEligibleHitters) {
+    let pool = Object.entries(assignment).map(([pos, player]) => ({ pos, player }));
     const slots = new Array(9);
+    const remove = (entry) => { pool = pool.filter(e => e !== entry); };
+    const opsOf = (e) => matchups.get(e.player.id).ops;
 
-    function take(index, chooser, badge) {
-      if (pool.length === 0) return;
-      pool.sort((a, b) => chooser(b) - chooser(a));
-      const picked = pool[0];
-      pool = pool.filter(e => e !== picked);
-      slots[index] = { ...picked, badge };
+    // #3 THE BEST OPS RULE — picked and removed first, overriding everything else.
+    const best3 = pool.slice().sort((a, b) => opsOf(b) - opsOf(a))[0];
+    slots[2] = { ...best3, badge: "Best OPS (Locked #3)" };
+    remove(best3);
+
+    // #1 Leadoff — shortlist the top 3 remaining by OB, then within that
+    // shortlist pick whoever has the best combined speed + stealing.
+    const obShortlist = pool.slice().sort((a, b) => matchups.get(b.player.id).ob - matchups.get(a.player.id).ob).slice(0, 3);
+    const leadoff = obShortlist.slice().sort((a, b) => {
+      const sb = (b.player.speed ?? 0) + parseStealingNum(b.player.stealing);
+      const sa = (a.player.speed ?? 0) + parseStealingNum(a.player.stealing);
+      return sb - sa;
+    })[0];
+    slots[0] = { ...leadoff, badge: "Leadoff: Speed & OB" };
+    remove(leadoff);
+
+    // #2 — shortlist the top 3 remaining by OPS, then within that shortlist
+    // pick whoever has the lowest (best) Double Play rating.
+    const opsShortlist = pool.slice().sort((a, b) => opsOf(b) - opsOf(a)).slice(0, 3);
+    const secondSpot = opsShortlist.slice().sort((a, b) => matchups.get(a.player.id).dp - matchups.get(b.player.id).dp)[0];
+    slots[1] = { ...secondSpot, badge: "Contact & Low DP" };
+    remove(secondSpot);
+
+    // #4 Cleanup — highest matchup SLG remaining.
+    const cleanup = pool.slice().sort((a, b) => matchups.get(b.player.id).slg - matchups.get(a.player.id).slg)[0];
+    slots[3] = { ...cleanup, badge: "Cleanup: Power/SLG" };
+    remove(cleanup);
+
+    // #5 THE CLUTCH OPS BALANCER RULE.
+    const positiveClutch = pool.filter(e => (matchups.get(e.player.id).cl || 0) > 0);
+    const bestPositive = positiveClutch.length ? positiveClutch.slice().sort((a, b) => opsOf(b) - opsOf(a))[0] : null;
+    const bestOverall = pool.slice().sort((a, b) => opsOf(b) - opsOf(a))[0];
+    const fifth = (bestPositive && opsOf(bestPositive) >= opsOf(bestOverall)) ? bestPositive : bestOverall;
+    slots[4] = { ...fifth, badge: (matchups.get(fifth.player.id).cl || 0) > 0 ? "Clutch Weapon" : "Clutch Weapon (OPS Override)" };
+    remove(fifth);
+
+    // #6 & #7 — highest pure matchup OPS remaining, one at a time.
+    const sixth = pool.slice().sort((a, b) => opsOf(b) - opsOf(a))[0];
+    slots[5] = { ...sixth, badge: "Best Available OPS" };
+    remove(sixth);
+    const seventh = pool.slice().sort((a, b) => opsOf(b) - opsOf(a))[0];
+    slots[6] = { ...seventh, badge: "Best Available OPS" };
+    remove(seventh);
+
+    // #8 — of the final two, the higher-OPS one; the other becomes the #9
+    // candidate, subject to the defensive bench-swap check below.
+    pool.sort((a, b) => opsOf(b) - opsOf(a));
+    const eighth = pool[0];
+    const ninthCandidate = pool[1];
+    slots[7] = { ...eighth, badge: "Positional Depth" };
+
+    // #9 THE DEFENSIVE PRIORITIZATION RULE — check the bench (every eligible
+    // hitter not already in the starting 9) for anyone else who can play this
+    // same position with a better range/error rating; swap them in if found.
+    const startingIds = new Set(Object.values(assignment).map(p => p.id));
+    const bench = (allEligibleHitters || []).filter(p =>
+      !startingIds.has(p.id) && eligiblePositions(p).includes(ninthCandidate.pos)
+    );
+    let ninthPlayer = ninthCandidate.player;
+    let ninthBadge = "Defensive Specialist";
+    if (bench.length) {
+      const bestBenchDefender = bench.slice().sort((a, b) =>
+        defenseScoreFor(b, ninthCandidate.pos) - defenseScoreFor(a, ninthCandidate.pos)
+      )[0];
+      if (defenseScoreFor(bestBenchDefender, ninthCandidate.pos) > defenseScoreFor(ninthCandidate.player, ninthCandidate.pos)) {
+        ninthPlayer = bestBenchDefender;
+        ninthBadge = "Defensive Specialist (Bench Swap)";
+      }
     }
-
-    // #9 first: best defensive rating at their own assigned position wins.
-    take(8, (e) => defenseScoreFor(e.player, e.pos), "Defensive Specialist");
-
-    // #1 Leadoff: speed + stealing + on-base.
-    take(0, (e) => (e.player.speed ?? 0) + parseStealingNum(e.player.stealing) + matchups.get(e.player.id).ob, "Leadoff: Speed & OB");
-
-    // #2: lowest double-play split, highest on-base.
-    take(1, (e) => matchups.get(e.player.id).ob - matchups.get(e.player.id).dp, "Contact & Low DP");
-
-    // #3: best all-around matchup OPS.
-    take(2, (e) => matchups.get(e.player.id).ops, "Best Matchup OPS");
-
-    // #4 Cleanup: highest matchup Total Bases (power).
-    take(3, (e) => matchups.get(e.player.id).tb, "Cleanup: Power/TB");
-
-    // #5: highest Clutch rating; falls back to OPS if nobody is clutch-rated.
-    const anyClutch = pool.some(e => (matchups.get(e.player.id).cl || 0) > 0);
-    take(4, (e) => anyClutch ? (matchups.get(e.player.id).cl || 0) : matchups.get(e.player.id).ops, "Clutch Weapon");
-
-    // #6: best pure contact (hits) split.
-    take(5, (e) => matchups.get(e.player.id).h, "Stabilizer: Contact");
-
-    // #7 & #8: whoever's left, best matchup OPS first.
-    take(6, (e) => matchups.get(e.player.id).ops, "Lineup Depth");
-    take(7, (e) => matchups.get(e.player.id).ops, "Lineup Depth");
+    slots[8] = { pos: ninthCandidate.pos, player: ninthPlayer, badge: ninthBadge };
 
     return slots;
   }
 
+  // "Abbott, Andrew (R)     S(6)     -2   |   DEF-3e0    B-0    WP-12    Innings-84"
+  function pitcherBannerLine(p) {
+    return `${p.name} (${p.throwsHand})     ${p.endurance.raw || "—"}     ${fmtNum(p.hold)}   |   `
+      + `DEF-${displayFLD(p.fielding)}    B-${p.bk || "—"}    WP-${p.wp || "—"}    Innings-${fmtNum(p.ip)}`;
+  }
+
+  const lineupBenchCard = document.getElementById("lineup-bench-card");
+  const lineupBenchSlotsEl = document.getElementById("lineup-bench-slots");
+  const lineupBenchEmptyEl = document.getElementById("lineup-bench-empty");
+  const confirmStartGameBtn = document.getElementById("confirm-start-game-btn");
+
+  // Editable pre-game state: the 9 starting slots and the remaining bench,
+  // both mutated in place by the click-to-swap interaction below. Cleared
+  // on every fresh Generate click.
+  let currentLineupSlots = null;
+  let currentBenchPool = [];
+  let currentOpponentPitcher = null;
+  let currentWeatherValues = null;
+  let selectedBenchPlayerId = null;
+
   function renderLineupResult(slots, opponentPitcher, myTeam) {
     lineupResultMeta.textContent = `${myTeam} vs ${opponentPitcher.name} (${opponentPitcher.throwsHand}), ${opponentPitcher.jhmlTeam}`;
-    lineupResultSlots.innerHTML = slots.map((slot, i) => {
+    const bannerHtml = `
+      <div class="rounded-md p-3 mb-3 font-mono text-sm font-semibold" style="background: #FFD400; color: #14213D; border: 2px solid #14213D;">
+        ${escapeHtml(pitcherBannerLine(opponentPitcher))}
+      </div>`;
+    const slotsHtml = slots.map((slot, i) => {
       if (!slot) {
         return `<div class="lineup-slot-card"><span class="lineup-slot-num">${i + 1}</span><span style="color: var(--ink-soft);">No eligible player left to fill this spot.</span></div>`;
       }
       const p = slot.player;
-      const ops = matchupCache.get(p.id).ops.toFixed(2);
+      const m = calcMatchup(p, opponentPitcher, currentWeatherValues || {});
+      const nameLine = `${p.name} (Bat: ${p.bats[0]}) | ${p.jhmlTeam || "—"}`;
+      let line = statLineFor(slot.pos, m);
+      // Append the position-specific defense rating — skipped entirely for DH.
+      if (slot.pos !== "DH") {
+        const entry = entryForPosition(p, slot.pos);
+        if (entry && entry.range !== null && entry.error !== null) {
+          line += ` | DEF: ${fieldingDetail(entry, p.fielding.sharedOFArm)}`;
+        }
+      }
+      const selectableClass = selectedBenchPlayerId ? " selectable" : "";
+      const posOptions = POSITION_ORDER.map(pos =>
+        `<option value="${pos}" ${pos === slot.pos ? "selected" : ""}>${pos}</option>`
+      ).join("");
       return `
-        <div class="lineup-slot-card">
+        <div class="lineup-slot-card${selectableClass}" data-slot-index="${i}">
           <span class="lineup-slot-num">${i + 1}</span>
           <div class="flex-1 min-w-0">
-            <div class="font-medium">${escapeHtml(p.name)} <span class="font-mono text-[11px]">(Bat: ${p.bats[0]})</span></div>
-            <div class="text-[11px] font-mono" style="color: var(--ink-soft);">${positionLabel(slot.pos)} · Matchup OPS ${ops}</div>
+            <div class="font-medium">${escapeHtml(nameLine)}</div>
+            <div class="text-[11px] font-mono" style="color: var(--ink-soft);">${escapeHtml(line)}</div>
           </div>
+          <select class="status-select lineup-pos-select" data-slot-index="${i}">${posOptions}</select>
           <span class="lineup-slot-badge">[${slot.badge}]</span>
         </div>`;
     }).join("");
+    lineupResultSlots.innerHTML = bannerHtml + slotsHtml;
     lineupResultCard.classList.remove("hidden");
+
+    lineupResultSlots.querySelectorAll(".lineup-pos-select").forEach(sel => {
+      sel.addEventListener("click", (e) => e.stopPropagation());
+      sel.addEventListener("change", () => {
+        const idx = Number(sel.dataset.slotIndex);
+        const slot = currentLineupSlots[idx];
+        if (!slot) return;
+        slot.pos = sel.value;
+        renderLineupResult(currentLineupSlots, currentOpponentPitcher, lineupTeamSelect.value);
+      });
+    });
+
+    lineupResultSlots.querySelectorAll("[data-slot-index]").forEach(el => {
+      el.addEventListener("click", (e) => {
+        if (e.target.tagName === "SELECT") return; // let the position dropdown handle its own click
+        if (!selectedBenchPlayerId) return; // nothing selected — click does nothing
+        const idx = Number(el.dataset.slotIndex);
+        const slot = currentLineupSlots[idx];
+        if (!slot) return;
+        const benchPlayer = currentBenchPool.find(p => p.id === selectedBenchPlayerId);
+        if (!benchPlayer) return;
+        const oldPlayer = slot.player;
+        slot.player = benchPlayer;
+        currentBenchPool = currentBenchPool.filter(p => p.id !== benchPlayer.id);
+        currentBenchPool.push(oldPlayer);
+        selectedBenchPlayerId = null;
+        renderLineupResult(currentLineupSlots, currentOpponentPitcher, lineupTeamSelect.value);
+        renderLineupBenchPool();
+      });
+    });
+  }
+
+  function renderLineupBenchPool() {
+    lineupBenchCard.classList.remove("hidden");
+    lineupBenchEmptyEl.classList.toggle("hidden", currentBenchPool.length > 0);
+    lineupBenchSlotsEl.innerHTML = currentBenchPool.map(p => {
+      const { nameLine, line } = benchStatLine(p, currentOpponentPitcher, currentWeatherValues, false);
+      const isSelected = p.id === selectedBenchPlayerId;
+      return `
+        <div class="lineup-slot-card selectable${isSelected ? " selected-for-swap" : ""}" data-bench-player-id="${p.id}">
+          <div class="flex-1 min-w-0">
+            <div class="font-medium">${escapeHtml(nameLine)}</div>
+            <div class="text-[11px] font-mono" style="color: var(--ink-soft);">${escapeHtml(line)}</div>
+          </div>
+        </div>`;
+    }).join("");
+    lineupBenchSlotsEl.querySelectorAll("[data-bench-player-id]").forEach(el => {
+      el.addEventListener("click", () => {
+        const id = el.dataset.benchPlayerId;
+        selectedBenchPlayerId = (selectedBenchPlayerId === id) ? null : id;
+        renderLineupBenchPool();
+        renderLineupResult(currentLineupSlots, currentOpponentPitcher, lineupTeamSelect.value);
+      });
+    });
   }
 
   let matchupCache = new Map();
@@ -1520,6 +2311,9 @@
   generateLineupBtn.addEventListener("click", () => {
     lineupGenerateNote.textContent = "";
     lineupResultCard.classList.add("hidden");
+    lineupBenchCard.classList.add("hidden");
+    confirmStartGameBtn.classList.add("hidden");
+    selectedBenchPlayerId = null;
 
     const myTeam = lineupTeamSelect.value;
     const pitcherId = lineupOppPitcherSelect.value;
@@ -1529,19 +2323,17 @@
       return;
     }
 
-    const eligible = state.hitters.filter(p => p.jhmlTeam === myTeam && p.status === "Majors");
+    const eligible = state.hitters.filter(p => p.jhmlTeam === myTeam && isMajors(p));
     if (eligible.length < 9) {
       lineupGenerateNote.textContent = `Only ${eligible.length} Majors-eligible hitter(s) on this team — need at least 9 (check the Rosters tab for anyone marked Minors/Injured).`;
       return;
     }
 
-    const envAdj = {
-      bpsAdj: state.lineupPrefs.bpsAdj || 0,
-      bphrAdj: state.lineupPrefs.bphrAdj || 0,
-      weather: state.lineupPrefs.weather || "Fair",
-    };
+    const weatherValues = getOverrideValues();
+    currentWeatherValues = weatherValues;
+    currentOpponentPitcher = pitcher;
 
-    matchupCache = new Map(eligible.map(p => [p.id, calcMatchup(p, pitcher, envAdj)]));
+    matchupCache = new Map(eligible.map(p => [p.id, calcMatchup(p, pitcher, weatherValues)]));
 
     const assignment = assignPositions(eligible, matchupCache);
     if (Object.keys(assignment).length < 9) {
@@ -1549,9 +2341,464 @@
       return;
     }
 
-    const slots = buildBattingOrder(assignment, matchupCache);
-    renderLineupResult(slots, pitcher, myTeam);
+    const slots = buildBattingOrder(assignment, matchupCache, eligible);
+    currentLineupSlots = slots;
+    const startingIdSet = new Set(slots.filter(Boolean).map(s => s.player.id));
+    currentBenchPool = eligible.filter(p => !startingIdSet.has(p.id));
+
+    renderLineupResult(currentLineupSlots, pitcher, myTeam);
+    renderLineupBenchPool();
+    confirmStartGameBtn.classList.remove("hidden");
   });
+
+  // 🔒 CONFIRM AND START LIVE GAME — locks whatever the 9 slots currently
+  // show (after any manual bench swaps) into gameState and jumps straight
+  // to the In-Game Simulator tab.
+  confirmStartGameBtn.addEventListener("click", () => {
+    if (!currentLineupSlots || !currentOpponentPitcher) return;
+    const validSlots = currentLineupSlots.filter(Boolean);
+    state.gameState = {
+      myTeam: lineupTeamSelect.value,
+      opponentTeam: lineupOppTeamSelect.value,
+      pitcherId: currentOpponentPitcher.id,
+      startingIds: validSlots.map(s => ({ id: s.player.id, pos: s.pos })),
+      usedPlayerIds: [],
+    };
+    saveData();
+    const ingameBtn = document.querySelector('.tab-btn[data-tab="ingame"]');
+    if (ingameBtn) ingameBtn.click();
+  });
+
+  // ==========================================================================
+  // IN-GAME SIMULATOR — the lineup locked in by the last "Generate Suggested
+  // Strategic Lineup" click, a live bench pool, and a pinch-hit advisor that
+  // recomputes matchups the instant the opponent's pitcher is swapped.
+  // ==========================================================================
+  const ingameEmptyState = document.getElementById("ingame-empty-state");
+  const ingameBodyEl = document.getElementById("ingame-body");
+  const ingameRelieverSelect = document.getElementById("ingame-reliever-select");
+  const ingameClutchToggle = document.getElementById("ingame-clutch-toggle");
+  const ingameStartersEl = document.getElementById("ingame-starters");
+  const ingameBenchEl = document.getElementById("ingame-bench");
+  const ingameBenchEmpty = document.getElementById("ingame-bench-empty");
+  const ingameExtinguishedEl = document.getElementById("ingame-extinguished");
+  const ingameExtinguishedEmpty = document.getElementById("ingame-extinguished-empty");
+
+  const PINCH_ALERT_THRESHOLD = 0.05; // OPS gap considered "significantly higher"
+  let ingameSelectedBenchId = null; // bench player currently selected for a manual swap
+  let clutchModeOn = false; // pivots AVE/OB/OPS display to CLA/CLO/OPS-C
+
+  function renderIngameRelieverSelect() {
+    const gs = state.gameState;
+    const bullpen = state.pitchers.filter(p => p.jhmlTeam === gs.opponentTeam && (p.endurance.isReliever || p.endurance.isCloser));
+    const options = bullpen.length ? bullpen : state.pitchers.filter(p => p.jhmlTeam === gs.opponentTeam);
+    ingameRelieverSelect.innerHTML = options.map(p =>
+      `<option value="${p.id}">${escapeHtml(p.name)} (${p.throwsHand})${p.endurance.isCloser ? " ★" : ""}</option>`
+    ).join("");
+    if (options.some(p => p.id === gs.pitcherId)) ingameRelieverSelect.value = gs.pitcherId;
+  }
+
+  function renderInGameTab() {
+    const gs = state.gameState;
+    if (!gs) {
+      ingameEmptyState.classList.remove("hidden");
+      ingameBodyEl.classList.add("hidden");
+      return;
+    }
+    gs.usedPlayerIds = gs.usedPlayerIds || [];
+    ingameEmptyState.classList.add("hidden");
+    ingameBodyEl.classList.remove("hidden");
+    ingameSelectedBenchId = null;
+    renderIngameRelieverSelect();
+    renderIngameBoard();
+  }
+
+  // Single shared substitution path — used by both the auto "Confirm
+  // Substitution" button next to a pinch alert AND the manual click-a-bench-
+  // player-then-click-a-slot flow. The outgoing player is permanently moved
+  // to the Extinguished list, never back to the healthy bench (once replaced
+  // in a real game, that starter can't re-enter).
+  function performIngameSubstitution(slotIndex, benchPlayerId) {
+    const gs = state.gameState;
+    if (!gs.startingIds[slotIndex]) return;
+    const outgoingId = gs.startingIds[slotIndex].id;
+    gs.startingIds[slotIndex].id = benchPlayerId;
+    gs.usedPlayerIds = gs.usedPlayerIds || [];
+    if (outgoingId && !gs.usedPlayerIds.includes(outgoingId)) gs.usedPlayerIds.push(outgoingId);
+    ingameSelectedBenchId = null;
+    saveData();
+    renderIngameBoard();
+  }
+
+  ingameClutchToggle.addEventListener("click", () => {
+    clutchModeOn = !clutchModeOn;
+    renderIngameBoard();
+  });
+
+  // CONTINUOUS ADVISOR LOOP — recomputed on every render (which fires on
+  // every substitution, position change, reliever swap, and clutch toggle),
+  // scanning the entire remaining lineup against the entire remaining
+  // healthy bench, so the pinch-hit alert never freezes on a stale move.
+  function renderIngameBoard() {
+    const gs = state.gameState;
+    const currentPitcher = state.pitchers.find(p => p.id === ingameRelieverSelect.value)
+      || state.pitchers.find(p => p.id === gs.pitcherId);
+    if (!currentPitcher) return;
+
+    ingameClutchToggle.textContent = clutchModeOn ? "ON" : "OFF";
+    ingameClutchToggle.classList.toggle("active", clutchModeOn);
+
+    const weatherValues = getOverrideValues();
+    const startingPlayers = gs.startingIds
+      .map((entry, i) => ({ pos: entry.pos, player: state.hitters.find(p => p.id === entry.id), slotIndex: i }))
+      .filter(e => e.player);
+
+    const startingIdSet = new Set(startingPlayers.map(e => e.player.id));
+    const usedSet = new Set(gs.usedPlayerIds || []);
+    const bench = state.hitters.filter(p =>
+      p.jhmlTeam === gs.myTeam && isMajors(p) && !startingIdSet.has(p.id) && !usedSet.has(p.id)
+    );
+
+    const benchMatchups = new Map(bench.map(p => [p.id, calcMatchup(p, currentPitcher, weatherValues)]));
+    const bestBench = bench.length
+      ? bench.slice().sort((a, b) => benchMatchups.get(b.id).ops - benchMatchups.get(a.id).ops)[0]
+      : null;
+
+    ingameStartersEl.innerHTML = startingPlayers.map((entry) => {
+      const p = entry.player;
+      const i = entry.slotIndex;
+      const m = calcMatchup(p, currentPitcher, weatherValues);
+      let line = statLineFor(entry.pos, m, clutchModeOn);
+      if (entry.pos !== "DH") {
+        const fEntry = entryForPosition(p, entry.pos);
+        if (fEntry && fEntry.range !== null && fEntry.error !== null) {
+          line += ` | DEF: ${fieldingDetail(fEntry, p.fielding.sharedOFArm)}`;
+        }
+      }
+      let alertHtml = "";
+      if (bestBench) {
+        const gap = benchMatchups.get(bestBench.id).ops - m.ops;
+        if (gap > PINCH_ALERT_THRESHOLD) {
+          alertHtml = `
+            <span class="badge badge-pinch-alert">⚡ PINCH: ${escapeHtml(bestBench.name)} +${gap.toFixed(3)} OPS</span>
+            <button class="px-2 py-1 rounded text-xs font-medium confirm-sub-btn" style="background: #1B5E20; color: #FFFFFF;" data-slot-index="${i}" data-bench-player-id="${bestBench.id}">Confirm Substitution</button>`;
+        }
+      }
+      const posOptions = POSITION_ORDER.map(pos =>
+        `<option value="${pos}" ${pos === entry.pos ? "selected" : ""}>${pos}</option>`
+      ).join("");
+      const selectableClass = ingameSelectedBenchId ? " selectable" : "";
+      return `
+        <div class="lineup-slot-card${selectableClass}" data-ingame-slot-index="${i}">
+          <span class="lineup-slot-num">${i + 1}</span>
+          <div class="flex-1 min-w-0">
+            <div class="font-medium">${escapeHtml(p.name)} (Bat: ${p.bats[0]}) | ${escapeHtml(p.jhmlTeam || "—")}</div>
+            <div class="text-[11px] font-mono" style="color: var(--ink-soft);">${escapeHtml(line)}</div>
+          </div>
+          <select class="status-select ingame-pos-select" data-slot-index="${i}">${posOptions}</select>
+          ${alertHtml}
+        </div>`;
+    }).join("");
+
+    ingameStartersEl.querySelectorAll(".ingame-pos-select").forEach(sel => {
+      sel.addEventListener("click", (e) => e.stopPropagation());
+      sel.addEventListener("change", () => {
+        const idx = Number(sel.dataset.slotIndex);
+        if (!gs.startingIds[idx]) return;
+        gs.startingIds[idx].pos = sel.value;
+        saveData();
+        renderIngameBoard();
+      });
+    });
+    ingameStartersEl.querySelectorAll(".confirm-sub-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        performIngameSubstitution(Number(btn.dataset.slotIndex), btn.dataset.benchPlayerId);
+      });
+    });
+    // Manual swap: clicking a starting slot while a bench player is selected
+    // substitutes them in (same permanent-extinguish rule as the auto button).
+    ingameStartersEl.querySelectorAll("[data-ingame-slot-index]").forEach(el => {
+      el.addEventListener("click", (e) => {
+        if (e.target.tagName === "SELECT" || e.target.tagName === "BUTTON") return;
+        if (!ingameSelectedBenchId) return;
+        performIngameSubstitution(Number(el.dataset.ingameSlotIndex), ingameSelectedBenchId);
+      });
+    });
+
+    ingameBenchEmpty.classList.toggle("hidden", bench.length > 0);
+    ingameBenchEl.innerHTML = bench.slice().sort((a, b) => benchMatchups.get(b.id).ops - benchMatchups.get(a.id).ops).map(p => {
+      const { nameLine, line } = benchStatLine(p, currentPitcher, weatherValues, clutchModeOn);
+      const isSelected = p.id === ingameSelectedBenchId;
+      return `
+        <div class="lineup-slot-card selectable${isSelected ? " selected-for-swap" : ""}" style="background: var(--card);" data-ingame-bench-id="${p.id}">
+          <div class="flex-1 min-w-0">
+            <div class="font-medium">${escapeHtml(nameLine)}</div>
+            <div class="text-[11px] font-mono" style="color: var(--ink-soft);">${escapeHtml(line)}</div>
+          </div>
+        </div>`;
+    }).join("");
+    ingameBenchEl.querySelectorAll("[data-ingame-bench-id]").forEach(el => {
+      el.addEventListener("click", () => {
+        const id = el.dataset.ingameBenchId;
+        ingameSelectedBenchId = (ingameSelectedBenchId === id) ? null : id;
+        renderIngameBoard();
+      });
+    });
+
+    const extinguished = (gs.usedPlayerIds || [])
+      .map(id => state.hitters.find(p => p.id === id))
+      .filter(Boolean);
+    ingameExtinguishedEmpty.classList.toggle("hidden", extinguished.length > 0);
+    ingameExtinguishedEl.innerHTML = extinguished.map(p => `
+      <div class="lineup-slot-card" style="opacity: .6;">
+        <div class="flex-1 min-w-0">
+          <div class="font-medium">${escapeHtml(p.name)} (Bat: ${p.bats[0]})</div>
+          <div class="text-[11px] font-mono" style="color: var(--ink-soft);">Removed from the game — ineligible to re-enter.</div>
+        </div>
+      </div>`).join("");
+  }
+
+  ingameRelieverSelect.addEventListener("change", () => {
+    state.gameState.pitcherId = ingameRelieverSelect.value;
+    saveData();
+    renderIngameBoard();
+  });
+
+  // ==========================================================================
+  // SEASON TAB — weather matrix, schedule ledger, post-game entry, trades.
+  // These are first-pass, functional implementations of a large ask: simple
+  // data models backed by localStorage, not a full league-management suite.
+  // ==========================================================================
+  const seasonEmptyState = document.getElementById("season-empty-state");
+  const seasonBodyEl = document.getElementById("season-body");
+  const seasonViewButtons = document.querySelectorAll("[data-seasonview]");
+  const seasonViewPanels = {
+    weather: document.getElementById("seasonview-weather"),
+    schedule: document.getElementById("seasonview-schedule"),
+    postgame: document.getElementById("seasonview-postgame"),
+    trades: document.getElementById("seasonview-trades"),
+  };
+  seasonViewButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      seasonViewButtons.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      Object.entries(seasonViewPanels).forEach(([key, panel]) => panel.classList.toggle("hidden", key !== btn.dataset.seasonview));
+    });
+  });
+
+  function renderSeasonTab() {
+    const hasAnyData = state.hitters.length > 0 || state.pitchers.length > 0;
+    if (!hasAnyData) {
+      seasonEmptyState.classList.remove("hidden");
+      seasonBodyEl.classList.add("hidden");
+      return;
+    }
+    seasonEmptyState.classList.add("hidden");
+    seasonBodyEl.classList.remove("hidden");
+    renderWeatherMatrix();
+    renderScheduleForm();
+    renderScheduleList();
+    renderPostgameTeamSelect();
+    renderTradeForm();
+    renderTradeLog();
+  }
+
+  // ---- Weather Matrix -------------------------------------------------------
+  const weatherMatrixList = document.getElementById("weather-matrix-list");
+  const WEATHER_STATUSES = ["GOOD", "AVERAGE", "BAD"];
+
+  function renderWeatherMatrix() {
+    const teams = getUniqueTeams().filter(t => t !== "Free Agent");
+    weatherMatrixList.innerHTML = teams.map(t => {
+      const current = state.weatherMatrix[t] || "AVERAGE";
+      return `
+        <div class="card-panel rounded-md p-2 flex items-center justify-between gap-2">
+          <span class="text-sm font-medium">${escapeHtml(t)}</span>
+          <select class="field-input rounded px-2 py-1 text-sm weather-team-select" data-team="${escapeHtml(t)}">
+            ${WEATHER_STATUSES.map(s => `<option value="${s}" ${s === current ? "selected" : ""}>${s}</option>`).join("")}
+          </select>
+        </div>`;
+    }).join("");
+    weatherMatrixList.querySelectorAll(".weather-team-select").forEach(sel => {
+      sel.addEventListener("change", () => {
+        state.weatherMatrix[sel.dataset.team] = sel.value;
+        saveData();
+      });
+    });
+  }
+
+  // ---- Schedule ---------------------------------------------------------
+  const schedHomeTeamSelect = document.getElementById("sched-home-team");
+  const schedAwayTeamSelect = document.getElementById("sched-away-team");
+  const schedAwayPitcherSelect = document.getElementById("sched-away-pitcher");
+  const schedAddBtn = document.getElementById("sched-add-btn");
+  const scheduleListEl = document.getElementById("schedule-list");
+  const scheduleEmptyEl = document.getElementById("schedule-empty");
+  const seasonProgressLabel = document.getElementById("season-progress-label");
+
+  function renderScheduleForm() {
+    const teams = getUniqueTeams();
+    const teamOptions = teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
+    schedHomeTeamSelect.innerHTML = teamOptions;
+    schedAwayTeamSelect.innerHTML = teamOptions;
+    if (teams.length > 1) schedAwayTeamSelect.value = teams.find(t => t !== schedHomeTeamSelect.value) || teams[1];
+    renderSchedAwayPitcherOptions();
+  }
+  function renderSchedAwayPitcherOptions() {
+    const staff = state.pitchers.filter(p => p.jhmlTeam === schedAwayTeamSelect.value);
+    schedAwayPitcherSelect.innerHTML = staff.length
+      ? staff.map(p => `<option value="${p.id}">${escapeHtml(p.name)} (${p.throwsHand})</option>`).join("")
+      : `<option value="">No pitchers on this team</option>`;
+  }
+  schedAwayTeamSelect.addEventListener("change", renderSchedAwayPitcherOptions);
+
+  schedAddBtn.addEventListener("click", () => {
+    const homeTeam = schedHomeTeamSelect.value;
+    const awayTeam = schedAwayTeamSelect.value;
+    const awayPitcherId = schedAwayPitcherSelect.value;
+    if (!homeTeam || !awayTeam) return;
+    state.schedule.push({
+      id: uid(), gameNumber: state.schedule.length + 1,
+      homeTeam, awayTeam, awayPitcherId: awayPitcherId || null,
+    });
+    saveData();
+    renderScheduleList();
+  });
+
+  function renderScheduleList() {
+    seasonProgressLabel.textContent = `Game ${state.seasonGameCount} of 102`;
+    scheduleEmptyEl.classList.toggle("hidden", state.schedule.length > 0);
+    scheduleListEl.innerHTML = state.schedule.map(g => {
+      const pitcher = state.pitchers.find(p => p.id === g.awayPitcherId);
+      return `
+        <div class="lineup-slot-card">
+          <span class="lineup-slot-num">${g.gameNumber}</span>
+          <div class="flex-1 min-w-0 text-sm">
+            ${escapeHtml(g.homeTeam)} vs ${escapeHtml(g.awayTeam)}${pitcher ? ` — ${escapeHtml(pitcher.name)} (${pitcher.throwsHand})` : ""}
+          </div>
+          <button class="load-matchup-btn px-2 py-1 rounded text-xs font-medium" style="background: var(--header-bg); color: var(--chalk);" data-game-id="${g.id}">Load Matchup</button>
+        </div>`;
+    }).join("");
+    scheduleListEl.querySelectorAll(".load-matchup-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const game = state.schedule.find(g => g.id === btn.dataset.gameId);
+        if (!game) return;
+        state.lineupPrefs.teamName = game.homeTeam;
+        state.lineupPrefs.opponentTeam = game.awayTeam;
+        if (game.awayPitcherId) state.lineupPrefs.opponentPitcherId = game.awayPitcherId;
+        saveData();
+        document.querySelector('.tab-btn[data-tab="lineup"]').click();
+      });
+    });
+  }
+
+  // ---- Post-Game Entry -------------------------------------------------------
+  const postgameTeamSelect = document.getElementById("postgame-team-select");
+  const postgameHittersList = document.getElementById("postgame-hitters-list");
+  const postgamePitchersList = document.getElementById("postgame-pitchers-list");
+  const postgameSubmitBtn = document.getElementById("postgame-submit-btn");
+  const advanceGameBtn = document.getElementById("advance-game-btn");
+  const postgameStatus = document.getElementById("postgame-status");
+
+  function renderPostgameTeamSelect() {
+    const teams = getUniqueTeams();
+    postgameTeamSelect.innerHTML = teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
+    renderPostgameRosterInputs();
+  }
+  postgameTeamSelect.addEventListener("change", renderPostgameRosterInputs);
+
+  function renderPostgameRosterInputs() {
+    const team = postgameTeamSelect.value;
+    const hitters = state.hitters.filter(p => p.jhmlTeam === team);
+    const pitchers = state.pitchers.filter(p => p.jhmlTeam === team);
+    postgameHittersList.innerHTML = hitters.map(p => `
+      <div class="flex items-center justify-between gap-2 text-sm" style="border-bottom: 1px solid var(--border); padding: 3px 0;">
+        <span>${escapeHtml(p.name)} <span class="text-[11px] font-mono" style="color: var(--ink-soft);">(${cumulativeAB(p.id)} AB so far / ${fmtNum(p.ab)} carded)</span></span>
+        <input type="number" min="0" value="0" class="field-input rounded px-2 py-1 text-sm w-20 postgame-ab-input" data-player-id="${p.id}">
+      </div>`).join("") || `<p class="text-sm" style="color: var(--ink-soft);">No hitters on this team.</p>`;
+    postgamePitchersList.innerHTML = pitchers.map(p => `
+      <div class="flex items-center justify-between gap-2 text-sm" style="border-bottom: 1px solid var(--border); padding: 3px 0;">
+        <span>${escapeHtml(p.name)} <span class="text-[11px] font-mono" style="color: var(--ink-soft);">(${cumulativeIP(p.id)} IP so far / ${fmtNum(p.ip)} carded)</span></span>
+        <input type="number" min="0" step="0.1" value="0" class="field-input rounded px-2 py-1 text-sm w-20 postgame-ip-input" data-player-id="${p.id}">
+      </div>`).join("") || `<p class="text-sm" style="color: var(--ink-soft);">No pitchers on this team.</p>`;
+  }
+
+  postgameSubmitBtn.addEventListener("click", () => {
+    let updated = 0;
+    postgameHittersList.querySelectorAll(".postgame-ab-input").forEach(inp => {
+      const val = Number(inp.value) || 0;
+      if (val > 0) {
+        const id = inp.dataset.playerId;
+        state.seasonTotals.hitters[id] = state.seasonTotals.hitters[id] || { ab: 0 };
+        state.seasonTotals.hitters[id].ab += val;
+        updated++;
+      }
+    });
+    postgamePitchersList.querySelectorAll(".postgame-ip-input").forEach(inp => {
+      const val = Number(inp.value) || 0;
+      if (val > 0) {
+        const id = inp.dataset.playerId;
+        state.seasonTotals.pitchers[id] = state.seasonTotals.pitchers[id] || { ip: 0 };
+        state.seasonTotals.pitchers[id].ip += val;
+        updated++;
+      }
+    });
+    saveData();
+    renderPostgameRosterInputs();
+    try { renderRosterBody(); } catch (e) { /* ignore if roster tab not active */ }
+    postgameStatus.textContent = `Added totals for ${updated} player(s).`;
+  });
+
+  advanceGameBtn.addEventListener("click", () => {
+    state.seasonGameCount += 1;
+    saveData();
+    postgameStatus.textContent = `Advanced to game ${state.seasonGameCount} of 102.`;
+    renderScheduleList();
+  });
+
+  // ---- Trades -------------------------------------------------------
+  const tradePlayerSelect = document.getElementById("trade-player-select");
+  const tradeTeamSelect = document.getElementById("trade-team-select");
+  const tradeExecuteBtn = document.getElementById("trade-execute-btn");
+  const tradeLogList = document.getElementById("trade-log-list");
+  const tradeLogEmpty = document.getElementById("trade-log-empty");
+
+  function renderTradeForm() {
+    const all = [
+      ...state.hitters.map(p => ({ id: p.id, kind: "hitter", name: p.name, team: p.jhmlTeam })),
+      ...state.pitchers.map(p => ({ id: p.id, kind: "pitcher", name: p.name, team: p.jhmlTeam })),
+    ].sort((a, b) => a.name.localeCompare(b.name));
+    tradePlayerSelect.innerHTML = all.map(p =>
+      `<option value="${p.kind}:${p.id}">${escapeHtml(p.name)} (${p.kind === "pitcher" ? "P" : "H"}) — ${escapeHtml(p.team || "—")}</option>`
+    ).join("");
+    const teams = getUniqueTeams();
+    tradeTeamSelect.innerHTML = teams.map(t => `<option value="${escapeHtml(t)}">${t === "Free Agent" ? "Free Agents (fre)" : escapeHtml(t)}</option>`).join("");
+  }
+
+  tradeExecuteBtn.addEventListener("click", () => {
+    const [kind, id] = (tradePlayerSelect.value || "").split(":");
+    const newTeam = tradeTeamSelect.value;
+    if (!kind || !id || !newTeam) return;
+    const list = kind === "pitcher" ? state.pitchers : state.hitters;
+    const player = list.find(p => p.id === id);
+    if (!player) return;
+    const oldTeam = player.jhmlTeam;
+    player.jhmlTeam = newTeam;
+    state.transactionLog.unshift(`${player.name} moved from ${oldTeam || "—"} to ${newTeam}`);
+    state.transactionLog = state.transactionLog.slice(0, 20);
+    saveData();
+    try { renderRosterTeamSelect(); } catch (e) { /* ignore */ }
+    renderTradeForm();
+    renderTradeLog();
+  });
+
+  function renderTradeLog() {
+    tradeLogEmpty.classList.toggle("hidden", state.transactionLog.length > 0);
+    tradeLogList.innerHTML = state.transactionLog.slice(0, 10).map(entry =>
+      `<div class="text-sm font-mono" style="border-bottom: 1px solid var(--border); padding: 3px 0;">${escapeHtml(entry)}</div>`
+    ).join("");
+  }
 
   // ---------- INIT ----------
   renderRosterTeamSelect();
