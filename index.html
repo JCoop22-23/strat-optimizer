@@ -223,6 +223,12 @@
   .data-table tbody td { text-align: right; border-bottom: 1px solid var(--border); }
   .data-table tbody td:first-child { text-align: left; }
   .data-table .group-sep { border-left: 2px solid var(--accent); }
+  .weather-cfg-table th, .weather-cfg-table td { padding: 2px 3px; white-space: nowrap; }
+  .weather-cfg-table thead th { text-align: center; }
+  .weather-cfg-input {
+    width: 100%; font-size: 11px; padding: 1px 2px; text-align: center;
+    border: 1px solid var(--border); background: var(--card); color: var(--ink); border-radius: 3px;
+  }
   .data-table th:first-child, .data-table td:first-child {
     position: sticky; left: 0; z-index: 1; background: var(--card);
     box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.2);
@@ -472,80 +478,169 @@
         <button class="toggle-btn active px-4 py-1.5 text-sm font-medium" data-seasonview="weather">Weather Matrix</button>
         <button class="toggle-btn px-4 py-1.5 text-sm font-medium" data-seasonview="schedule">Schedule</button>
         <button class="toggle-btn px-4 py-1.5 text-sm font-medium" data-seasonview="postgame">Post-Game Entry</button>
-        <button class="toggle-btn px-4 py-1.5 text-sm font-medium" data-seasonview="trades">Trades</button>
+        <button class="toggle-btn px-4 py-1.5 text-sm font-medium" data-seasonview="transactions">Transactions</button>
+        <button class="toggle-btn px-4 py-1.5 text-sm font-medium" data-seasonview="timelines">Timelines</button>
       </div>
 
       <!-- Weather Matrix -->
       <div id="seasonview-weather" class="seasonview-panel">
-        <p class="text-xs mb-3" style="color: var(--ink-soft);">Set each team's current ballpark weather status. This is a per-team status board, separate from the one-off Ballpark/Weather adjustment fields on the Lineup Optimizer tab.</p>
-        <div id="weather-matrix-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+        <p class="text-xs mb-3" style="color: var(--ink-soft);">This is the live Ballpark &amp; Weather Configurator — the exact numbers the Lineup Optimizer's d20 roll reads from. Edit a Good/Avg Max d20 cutoff or a BPS/BPHR stat below and it's saved immediately; the Lineup Optimizer's "Manual BPS/BPHR" fields auto-fill from whichever row your current roll lands in.</p>
+        <div id="weather-matrix-list" class="flex flex-col"></div>
       </div>
 
       <!-- Schedule -->
       <div id="seasonview-schedule" class="seasonview-panel hidden">
         <div class="card-panel rounded-md p-3 mb-4">
-          <div class="text-[11px] font-semibold uppercase tracking-wide mb-2" style="color: var(--ink-soft);">Add a Game</div>
-          <div class="flex flex-wrap items-end gap-3">
+          <div class="text-[11px] font-semibold uppercase tracking-wide mb-2" style="color: var(--ink-soft);">Schedule Series Builder</div>
+          <div class="flex flex-wrap items-end gap-3 mb-2">
             <div>
-              <label class="text-xs block mb-1" for="sched-home-team">My Team</label>
-              <select id="sched-home-team" class="field-input rounded px-3 py-2 text-sm min-w-[160px]"></select>
+              <label class="text-xs block mb-1" for="sched-myteam-select">My Team</label>
+              <select id="sched-myteam-select" class="field-input rounded px-3 py-2 text-sm min-w-[180px]"></select>
             </div>
             <div>
-              <label class="text-xs block mb-1" for="sched-away-team">Opponent</label>
-              <select id="sched-away-team" class="field-input rounded px-3 py-2 text-sm min-w-[160px]"></select>
+              <label class="text-xs block mb-1" for="sched-opponent-select">Select Opponent Team</label>
+              <select id="sched-opponent-select" class="field-input rounded px-3 py-2 text-sm min-w-[180px]"></select>
             </div>
             <div>
-              <label class="text-xs block mb-1" for="sched-away-pitcher">Opponent Pitcher</label>
-              <select id="sched-away-pitcher" class="field-input rounded px-3 py-2 text-sm min-w-[180px]"></select>
+              <label class="text-xs block mb-1" for="sched-venue-select">Toggle Venue</label>
+              <select id="sched-venue-select" class="field-input rounded px-3 py-2 text-sm min-w-[120px]">
+                <option value="Home">Home</option>
+                <option value="Away">Away</option>
+              </select>
             </div>
-            <button id="sched-add-btn" class="px-3 py-1.5 rounded text-sm font-medium" style="background: var(--green); color: var(--chalk);">Add Game</button>
+            <div>
+              <label class="text-xs block mb-1" for="sched-len-select">Series Length</label>
+              <select id="sched-len-select" class="field-input rounded px-3 py-2 text-sm min-w-[120px]">
+                <option value="3">3 Games</option>
+                <option value="2">2 Games</option>
+              </select>
+            </div>
+            <button id="sched-create-series-btn" class="px-3 py-1.5 rounded text-sm font-medium" style="background: var(--green); color: var(--chalk);">⚙️ Create and Schedule Series</button>
           </div>
+          <p class="text-xs" style="color: var(--ink-soft);">The finale of every series is automatically a Day game; earlier games default to Night (the first-ever Home game of the year is forced Day too). A Day Off is injected automatically the moment your 3rd consecutive series is completed, with an extra recovery day applied immediately.</p>
         </div>
-        <div class="text-sm font-mono mb-2" style="color: var(--ink-soft);">Season progress: <span id="season-progress-label"></span></div>
-        <div id="schedule-list" class="flex flex-col gap-2"></div>
-        <p id="schedule-empty" class="text-sm py-3" style="color: var(--ink-soft);">No games on the schedule yet.</p>
+        <div id="frontoffice-rec" class="hidden rounded-md p-3 mb-4 text-sm" style="background: var(--red-soft); border: 1px solid var(--red); color: var(--red);"></div>
+        <div class="text-sm font-mono mb-2" style="color: var(--ink-soft);">Season progress: <span id="season-progress-label"></span> · Next up: <span id="season-next-label" style="color: var(--accent);"></span></div>
+        <div id="schedule-list" class="flex flex-col gap-1"></div>
+        <p id="schedule-empty" class="text-sm py-3" style="color: var(--ink-soft);">No series scheduled yet — pick an opponent, venue, and length above, then click Create and Schedule Series.</p>
       </div>
 
       <!-- Post-Game Entry -->
       <div id="seasonview-postgame" class="seasonview-panel hidden">
-        <div class="flex flex-wrap items-end gap-3 mb-3">
-          <div>
-            <label class="text-xs block mb-1" for="postgame-team-select">Team</label>
-            <select id="postgame-team-select" class="field-input rounded px-3 py-2 text-sm min-w-[180px]"></select>
+        <div id="postgame-empty" class="card-panel rounded-md p-6 text-center text-sm" style="color: var(--ink-soft);">Schedule a series first — the scorecard logs against the next unplayed game on the ledger.</div>
+        <div id="postgame-form-wrap" class="hidden">
+          <div class="card-panel rounded-md p-3 mb-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide mb-2" style="color: var(--ink-soft);">Next Game: <span id="postgame-next-label" class="font-mono normal-case"></span></div>
+            <div class="overflow-x-auto">
+              <table class="data-table" style="font-size:12px;">
+                <thead><tr><th class="left">Team</th><th>R</th><th>H</th><th>E</th><th class="left">Pitcher of Record</th><th class="left">Decision</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td class="left font-medium" id="pg-away-team-label"></td>
+                    <td><input id="pg-away-runs" type="number" min="0" class="field-input rounded px-1 py-1 text-sm w-14"></td>
+                    <td><input id="pg-away-hits" type="number" min="0" class="field-input rounded px-1 py-1 text-sm w-14"></td>
+                    <td><input id="pg-away-errors" type="number" min="0" class="field-input rounded px-1 py-1 text-sm w-14"></td>
+                    <td class="left"><select id="pg-away-pitcher" class="field-input rounded px-2 py-1 text-sm min-w-[150px]"></select></td>
+                    <td class="left"><select id="pg-away-decision" class="field-input rounded px-2 py-1 text-sm"><option value="">—</option><option value="W">Win</option><option value="L">Loss</option></select></td>
+                  </tr>
+                  <tr>
+                    <td class="left font-medium" id="pg-home-team-label"></td>
+                    <td><input id="pg-home-runs" type="number" min="0" class="field-input rounded px-1 py-1 text-sm w-14"></td>
+                    <td><input id="pg-home-hits" type="number" min="0" class="field-input rounded px-1 py-1 text-sm w-14"></td>
+                    <td><input id="pg-home-errors" type="number" min="0" class="field-input rounded px-1 py-1 text-sm w-14"></td>
+                    <td class="left"><select id="pg-home-pitcher" class="field-input rounded px-2 py-1 text-sm min-w-[150px]"></select></td>
+                    <td class="left"><select id="pg-home-decision" class="field-input rounded px-2 py-1 text-sm"><option value="">—</option><option value="W">Win</option><option value="L">Loss</option></select></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="mt-2">
+              <label class="text-xs block mb-1" for="pg-save-pitcher">Save Pitcher (either team, optional)</label>
+              <select id="pg-save-pitcher" class="field-input rounded px-2 py-1 text-sm min-w-[220px]"><option value="">— none —</option></select>
+            </div>
           </div>
-          <button id="postgame-submit-btn" class="px-3 py-1.5 rounded text-sm font-medium" style="background: var(--green); color: var(--chalk);">Add To Season Totals</button>
-          <button id="advance-game-btn" class="px-3 py-1.5 rounded text-sm font-medium" style="background: var(--header-bg); color: var(--chalk);">Advance Season (+1 Game)</button>
-          <span id="postgame-status" class="text-xs font-mono" style="color: var(--ink-soft);"></span>
-        </div>
-        <div class="card-panel rounded-md p-3 mb-3">
-          <div class="position-group-title">Hitters — enter AB this game</div>
-          <div id="postgame-hitters-list" class="flex flex-col gap-1"></div>
-        </div>
-        <div class="card-panel rounded-md p-3">
-          <div class="position-group-title">Pitchers — enter IP this game</div>
-          <div id="postgame-pitchers-list" class="flex flex-col gap-1"></div>
+          <div class="card-panel rounded-md p-3 mb-3">
+            <div class="position-group-title">Hitters — AB this game (check Injured to start an injury countdown)</div>
+            <div id="postgame-hitters-list" class="flex flex-col gap-1"></div>
+          </div>
+          <div class="card-panel rounded-md p-3 mb-3">
+            <div class="position-group-title">Pitchers — IP this game (fatigue days are calculated automatically on submit)</div>
+            <div id="postgame-pitchers-list" class="flex flex-col gap-1"></div>
+          </div>
+          <button id="postgame-submit-btn" class="w-full sm:w-auto px-6 py-3 rounded-md text-sm font-bold uppercase tracking-wide" style="background: var(--header-bg); color: var(--chalk); border: 2px solid var(--accent);">Submit Scorecard &amp; Advance Season</button>
+          <span id="postgame-status" class="text-xs font-mono ml-3" style="color: var(--ink-soft);"></span>
         </div>
       </div>
 
-      <!-- Trades -->
-      <div id="seasonview-trades" class="seasonview-panel hidden">
-        <div class="card-panel rounded-md p-3 mb-4">
-          <div class="text-[11px] font-semibold uppercase tracking-wide mb-2" style="color: var(--ink-soft);">Move a Player</div>
-          <div class="flex flex-wrap items-end gap-3">
-            <div>
-              <label class="text-xs block mb-1" for="trade-player-select">Player</label>
-              <select id="trade-player-select" class="field-input rounded px-3 py-2 text-sm min-w-[220px]"></select>
-            </div>
-            <div>
-              <label class="text-xs block mb-1" for="trade-team-select">New Team</label>
-              <select id="trade-team-select" class="field-input rounded px-3 py-2 text-sm min-w-[160px]"></select>
-            </div>
-            <button id="trade-execute-btn" class="px-3 py-1.5 rounded text-sm font-medium" style="background: var(--accent); color: var(--chalk);">Execute Trade</button>
-          </div>
+      <!-- Transactions -->
+      <div id="seasonview-transactions" class="seasonview-panel hidden">
+        <div class="card-panel rounded-md p-3 mb-4 flex items-center justify-between flex-wrap gap-2">
+          <div class="text-sm font-semibold">Moves Used: <span id="moves-used-label" class="font-mono"></span> / 60</div>
+          <div class="text-xs" style="color: var(--ink-soft);">September recalls, DL-replacement recalls, and DL-activation send-downs don't count against the cap.</div>
         </div>
-        <div class="position-group-title">Recent Moves</div>
+        <div class="card-panel rounded-md p-3 mb-4">
+          <div class="text-[11px] font-semibold uppercase tracking-wide mb-2" style="color: var(--ink-soft);">Make a Move</div>
+          <div class="flex flex-wrap items-end gap-3 mb-2">
+            <div>
+              <label class="text-xs block mb-1" for="txn-player-select">Player</label>
+              <select id="txn-player-select" class="field-input rounded px-3 py-2 text-sm min-w-[220px]"></select>
+            </div>
+            <div>
+              <label class="text-xs block mb-1" for="txn-type-select">Move Type</label>
+              <select id="txn-type-select" class="field-input rounded px-3 py-2 text-sm min-w-[220px]">
+                <option value="callup">Call-up (Minors → Majors)</option>
+                <option value="senddown">Send-down (Majors → Minors)</option>
+                <option value="trade">Trade (to new team)</option>
+                <option value="dl_activate">Activate from DL</option>
+                <option value="september_recall">September Recall (exempt)</option>
+                <option value="injury_replacement_recall">Recall to Replace Injured/Traded Player (exempt)</option>
+                <option value="dl_or_trade_senddown">Send Down for DL Activation / Trade Replacement (exempt)</option>
+              </select>
+            </div>
+            <div id="txn-new-team-wrap">
+              <label class="text-xs block mb-1" for="txn-new-team-select">New Team (trade only)</label>
+              <select id="txn-new-team-select" class="field-input rounded px-3 py-2 text-sm min-w-[160px]"></select>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-4 mb-2 text-xs">
+            <span class="font-semibold uppercase tracking-wide" style="color: var(--ink-soft);">3-Series-Lock Exceptions:</span>
+            <label class="flex items-center gap-1"><input type="checkbox" id="txn-exc-beforeg1"> Before Game 1 of a series</label>
+            <label class="flex items-center gap-1"><input type="checkbox" id="txn-exc-augustlast2"> Before last 2 August series</label>
+            <label class="flex items-center gap-1"><input type="checkbox" id="txn-exc-dlreplace"> Replacing an injured/DL'd or traded player</label>
+          </div>
+          <button id="txn-execute-btn" class="px-3 py-1.5 rounded text-sm font-medium" style="background: var(--accent); color: var(--chalk);">Execute Move</button>
+        </div>
+        <div class="card-panel rounded-md p-3 mb-4">
+          <div class="position-group-title">Disabled List (6 calendar days minimum; off days count)</div>
+          <div id="dl-eligible-list" class="flex flex-col gap-1"></div>
+          <p id="dl-eligible-empty" class="text-sm py-2" style="color: var(--ink-soft);">No injured players to place on the DL.</p>
+          <div class="position-group-title mt-3">Currently on the DL</div>
+          <div id="dl-active-list" class="flex flex-col gap-1"></div>
+          <p id="dl-active-empty" class="text-sm py-2" style="color: var(--ink-soft);">Nobody is on the DL.</p>
+        </div>
+        <div class="position-group-title">Locked Players (3-series roster lock)</div>
+        <div id="lock-list" class="flex flex-col gap-1 mb-2"></div>
+        <p id="lock-empty" class="text-sm py-2" style="color: var(--ink-soft);">No players currently locked.</p>
+        <div class="position-group-title mt-3">Recent Moves</div>
         <div id="trade-log-list" class="flex flex-col gap-1"></div>
         <p id="trade-log-empty" class="text-sm py-2" style="color: var(--ink-soft);">No moves recorded yet.</p>
+      </div>
+
+      <!-- Timelines -->
+      <div id="seasonview-timelines" class="seasonview-panel hidden">
+        <div class="flex flex-wrap items-center gap-3 mb-3 text-[11px]">
+          <span class="badge" style="background:#FFD400; color:#14213D;">■ Day Off</span>
+          <span class="badge" style="background:#F59E0B; color:#FFFFFF;">■ Minors</span>
+          <span class="badge" style="background:#DC2626; color:#FFFFFF;">■ Injured</span>
+          <span class="badge" style="background:#7C3AED; color:#FFFFFF;">■ DL</span>
+          <span class="badge" style="background:#EC4899; color:#FFFFFF;">■ Tired (Pitchers)</span>
+          <span class="badge" style="background:#000000; color:#FFFFFF;">■ Traded Away</span>
+        </div>
+        <p class="text-xs mb-3" style="color: var(--ink-soft);">Full chronological grid from Game 1 through the latest scheduled game — scroll horizontally to see the whole season. Past games use the actual recorded status at kickoff; games not yet played are projected from each player's current countdowns.</p>
+        <div class="position-group-title">Hitters</div>
+        <div id="timeline-hitters" class="overflow-x-auto mb-4"></div>
+        <div class="position-group-title">Pitchers</div>
+        <div id="timeline-pitchers" class="overflow-x-auto"></div>
       </div>
     </div>
   </section>
@@ -571,6 +666,18 @@
         </div>
       </div>
 
+      <div class="card-panel rounded-md p-4 mb-4">
+        <div class="text-[11px] font-semibold uppercase tracking-wide mb-2" style="color: var(--ink-soft);">Live Opponent Lineup Tracker</div>
+        <p class="text-xs mb-2" style="color: var(--ink-soft);">Set the opponent's current 1-9 and swap a slot the moment they pinch-hit or substitute — the Bullpen Assistant below reads this live.</p>
+        <div id="opponent-lineup-grid" class="flex flex-col gap-1"></div>
+      </div>
+
+      <div class="card-panel rounded-md p-4 mb-4">
+        <div class="text-[11px] font-semibold uppercase tracking-wide mb-2" style="color: var(--ink-soft);">🎯 Bullpen Assistant — freshest arms vs. the next 1-3 opposing batters</div>
+        <div id="bullpen-assistant-list" class="flex flex-col gap-1"></div>
+        <p id="bullpen-assistant-empty" class="text-sm py-2" style="color: var(--ink-soft);">No fresh relievers available — everyone's Tired or on the DL.</p>
+      </div>
+
       <p class="text-xs mb-2" style="color: var(--ink-soft);">Click a healthy bench player below, then click a starting slot to substitute them in.</p>
       <h2 class="font-slab font-semibold text-lg mb-2">Starting Lineup</h2>
       <div id="ingame-starters" class="flex flex-col gap-2 mb-6"></div>
@@ -587,6 +694,17 @@
 
 </main>
 
+<!-- GAME DETAILS MODAL -->
+<div id="game-details-modal" class="hidden" style="position:fixed; inset:0; z-index:50; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; padding:16px;">
+  <div class="card-panel rounded-md p-4" style="max-width:520px; width:100%; max-height:85vh; overflow-y:auto;">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="font-slab font-semibold text-lg">Game Details</h2>
+      <button id="game-details-close-btn" class="px-2 py-1 rounded text-sm" style="border:1px solid var(--border);">✕ Close</button>
+    </div>
+    <div id="game-details-body" class="text-sm flex flex-col gap-3"></div>
+  </div>
+</div>
+
 <footer class="max-w-6xl mx-auto px-4 pb-8 text-xs" style="color: var(--ink-soft);">
   Everything here is saved in this browser only — clearing site data will erase it. <span style="opacity:.5;">build v8</span>
 </footer>
@@ -597,6 +715,79 @@
 
   const STORAGE_KEY = "jhmlLeagueData";
 
+  // ==========================================================================
+  // BALLPARK & WEATHER CONFIGURATOR — the full editable chart data model.
+  // Every team/split combination gets its OWN d20 Good/Avg cutoffs AND its
+  // OWN Good/Avg/Bad BPS-L/BPS-R/BPHR-L/BPHR-R stat block, all stored in
+  // state.weatherConfig and persisted to localStorage so the numbers survive
+  // reloads and can be edited from the Season tab whenever a team relocates
+  // or a stadium changes. This constant only supplies the FIRST-LOAD
+  // defaults (extracted from the league's real chart); after that, whatever
+  // is in localStorage is authoritative.
+  // ==========================================================================
+  const WEATHER_TEAM_NAMES = [
+    "Baltimore Orioles", "Chicago Cubs", "Chicago Islanders", "Cincinnati Roses",
+    "Detroit Motors", "Los Angeles Thieves", "Miami Marlins", "Milwaukee Ueckers",
+    "New York Survivors", "Pittsburgh Pirates", "San Diego A-Sox",
+    "San Francisco Quakes", "Tampa Bay Phenom", "Washington Senators",
+  ];
+  const WEATHER_SPLITS = ["jjaNight", "jjaDay", "amsoNight", "amsoDay"];
+  const WEATHER_SPLIT_LABELS = {
+    jjaNight: "Jun/Jul/Aug - NIGHT", jjaDay: "Jun/Jul/Aug - DAY",
+    amsoNight: "Apr/May/Sep/Oct - NIGHT", amsoDay: "Apr/May/Sep/Oct - DAY",
+  };
+  // ranges: [goodMax, avgMax] per split (1..goodMax = GOOD, goodMax+1..avgMax
+  // = AVERAGE, avgMax+1..20 = BAD). good/avg/bad: the team's original stat
+  // block, duplicated into every split as the starting point — the whole
+  // point of the new per-split fields is that they can now be edited apart
+  // from one another going forward.
+  const WEATHER_DEFAULT_RAW = {
+    "Baltimore Orioles": { ranges: { jjaNight: [10, 17], jjaDay: [7, 17], amsoNight: [8, 15], amsoDay: [4, 15] },
+      good: { bpsL: 17, bpsR: 5, bphrL: 18, bphrR: 15 }, avg: { bpsL: 16, bpsR: 4, bphrL: 14, bphrR: 17 }, bad: { bpsL: 14, bpsR: 2, bphrL: 15, bphrR: 12 } },
+    "Chicago Cubs": { ranges: { jjaNight: [11, 17], jjaDay: [7, 17], amsoNight: [7, 14], amsoDay: [4, 13] },
+      good: { bpsL: 7, bpsR: 4, bphrL: 11, bphrR: 12 }, avg: { bpsL: 5, bpsR: 1, bphrL: 2, bphrR: 8 }, bad: { bpsL: 2, bpsR: 0, bphrL: 2, bphrR: 1 } },
+    "Chicago Islanders": { ranges: { jjaNight: [11, 17], jjaDay: [7, 17], amsoNight: [7, 14], amsoDay: [4, 13] },
+      good: { bpsL: 8, bpsR: 8, bphrL: 10, bphrR: 10 }, avg: { bpsL: 6, bpsR: 6, bphrL: 8, bphrR: 8 }, bad: { bpsL: 3, bpsR: 3, bphrL: 5, bphrR: 5 } },
+    "Cincinnati Roses": { ranges: { jjaNight: [12, 17], jjaDay: [7, 17], amsoNight: [8, 15], amsoDay: [4, 14] },
+      good: { bpsL: 8, bpsR: 8, bphrL: 17, bphrR: 20 }, avg: { bpsL: 6, bpsR: 6, bphrL: 15, bphrR: 18 }, bad: { bpsL: 3, bpsR: 3, bphrL: 12, bphrR: 15 } },
+    "Detroit Motors": { ranges: { jjaNight: [12, 17], jjaDay: [7, 17], amsoNight: [7, 12], amsoDay: [3, 13] },
+      good: { bpsL: 10, bpsR: 10, bphrL: 12, bphrR: 12 }, avg: { bpsL: 9, bpsR: 9, bphrL: 10, bphrR: 10 }, bad: { bpsL: 8, bpsR: 8, bphrL: 7, bphrR: 7 } },
+    "Los Angeles Thieves": { ranges: { jjaNight: [9, 19], jjaDay: [16, 19], amsoNight: [12, 19], amsoDay: [7, 19] },
+      good: { bpsL: 2, bpsR: 2, bphrL: 18, bphrR: 12 }, avg: { bpsL: 1, bpsR: 1, bphrL: 16, bphrR: 10 }, bad: { bpsL: 0, bpsR: 0, bphrL: 15, bphrR: 9 } },
+    "Miami Marlins": { ranges: { jjaNight: [19, 20], jjaDay: [17, 20], amsoNight: [15, 20], amsoDay: [17, 20] },
+      good: { bpsL: 14, bpsR: 11, bphrL: 11, bphrR: 5 }, avg: { bpsL: 12, bpsR: 9, bphrL: 3, bphrR: 9 }, bad: { bpsL: 12, bpsR: 9, bphrL: 3, bphrR: 9 } },
+    "Milwaukee Ueckers": { ranges: { jjaNight: [13, 20], jjaDay: [7, 20], amsoNight: [4, 20], amsoDay: [10, 20] },
+      good: { bpsL: 3, bpsR: 3, bphrL: 13, bphrR: 13 }, avg: { bpsL: 2, bpsR: 2, bphrL: 11, bphrR: 11 }, bad: { bpsL: 2, bpsR: 2, bphrL: 11, bphrR: 11 } },
+    "New York Survivors": { ranges: { jjaNight: [12, 17], jjaDay: [7, 17], amsoNight: [4, 14], amsoDay: [8, 15] },
+      good: { bpsL: 2, bpsR: 2, bphrL: 8, bphrR: 14 }, avg: { bpsL: 1, bpsR: 1, bphrL: 13, bphrR: 7 }, bad: { bpsL: 0, bpsR: 0, bphrL: 5, bphrR: 11 } },
+    "Pittsburgh Pirates": { ranges: { jjaNight: [7, 17], jjaDay: [12, 17], amsoNight: [4, 13], amsoDay: [8, 14] },
+      good: { bpsL: 17, bpsR: 17, bphrL: 6, bphrR: 6 }, avg: { bpsL: 15, bpsR: 15, bphrL: 4, bphrR: 4 }, bad: { bpsL: 12, bpsR: 12, bphrL: 1, bphrR: 1 } },
+    "San Diego A-Sox": { ranges: { jjaNight: [13, 19], jjaDay: [8, 19], amsoNight: [6, 19], amsoDay: [10, 19] },
+      good: { bpsL: 2, bpsR: 2, bphrL: 11, bphrR: 11 }, avg: { bpsL: 1, bpsR: 1, bphrL: 9, bphrR: 9 }, bad: { bpsL: 0, bpsR: 0, bphrL: 8, bphrR: 8 } },
+    "San Francisco Quakes": { ranges: { jjaNight: [6, 10], jjaDay: [10, 19], amsoNight: [5, 8], amsoDay: [8, 18] },
+      good: { bpsL: 12, bpsR: 12, bphrL: 6, bphrR: 6 }, avg: { bpsL: 11, bpsR: 11, bphrL: 4, bphrR: 4 }, bad: { bpsL: 10, bpsR: 10, bphrL: 2, bphrR: 2 } },
+    "Tampa Bay Phenom": { ranges: { jjaNight: [6, 15], jjaDay: [1, 6], amsoNight: [7, 16], amsoDay: [11, 16] },
+      good: { bpsL: 9, bpsR: 18, bphrL: 13, bphrR: 16 }, avg: { bpsL: 5, bpsR: 14, bphrL: 9, bphrR: 12 }, bad: { bpsL: 4, bpsR: 13, bphrL: 11, bphrR: 8 } },
+    "Washington Senators": { ranges: { jjaNight: [7, 17], jjaDay: [11, 17], amsoNight: [9, 16], amsoDay: [5, 15] },
+      good: { bpsL: 11, bpsR: 11, bphrL: 10, bphrR: 10 }, avg: { bpsL: 10, bpsR: 10, bphrL: 7, bphrR: 7 }, bad: { bpsL: 8, bpsR: 8, bphrL: 6, bphrR: 6 } },
+  };
+
+  function buildDefaultWeatherConfig() {
+    const cfg = {};
+    WEATHER_TEAM_NAMES.forEach(team => {
+      const raw = WEATHER_DEFAULT_RAW[team];
+      cfg[team] = {};
+      WEATHER_SPLITS.forEach(split => {
+        const [goodMax, avgMax] = raw.ranges[split];
+        cfg[team][split] = {
+          goodMax, avgMax,
+          good: { ...raw.good }, avg: { ...raw.avg }, bad: { ...raw.bad },
+        };
+      });
+    });
+    return cfg;
+  }
+
   function loadData() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -604,18 +795,26 @@
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed.hitters) || !Array.isArray(parsed.pitchers)) throw new Error("bad shape");
       parsed.lineupPrefs = parsed.lineupPrefs || {};
-      parsed.weatherMatrix = parsed.weatherMatrix || {};
-      parsed.schedule = Array.isArray(parsed.schedule) ? parsed.schedule : [];
+      parsed.weatherConfig = (parsed.weatherConfig && typeof parsed.weatherConfig === "object")
+        ? parsed.weatherConfig : buildDefaultWeatherConfig();
+      parsed.scheduleRows = Array.isArray(parsed.scheduleRows) ? parsed.scheduleRows : [];
+      parsed.scheduleMyTeam = parsed.scheduleMyTeam || null;
       parsed.seasonGameCount = parsed.seasonGameCount || 0;
       parsed.seasonTotals = parsed.seasonTotals || { hitters: {}, pitchers: {} };
       parsed.transactionLog = Array.isArray(parsed.transactionLog) ? parsed.transactionLog : [];
+      parsed.playerStatus = (parsed.playerStatus && typeof parsed.playerStatus === "object") ? parsed.playerStatus : {};
+      parsed.movesUsed = parsed.movesUsed || 0;
+      parsed.seriesSinceDayOff = parsed.seriesSinceDayOff || 0;
+      parsed.gameHistory = (parsed.gameHistory && typeof parsed.gameHistory === "object") ? parsed.gameHistory : {};
       parsed.gameState = parsed.gameState || null;
       return parsed;
     } catch (e) {
       return {
         hitters: [], pitchers: [], lineupPrefs: {},
-        weatherMatrix: {}, schedule: [], seasonGameCount: 0,
-        seasonTotals: { hitters: {}, pitchers: {} }, transactionLog: [], gameState: null,
+        weatherConfig: buildDefaultWeatherConfig(),
+        scheduleRows: [], scheduleMyTeam: null, seasonGameCount: 0,
+        seasonTotals: { hitters: {}, pitchers: {} }, transactionLog: [],
+        playerStatus: {}, movesUsed: 0, seriesSinceDayOff: 0, gameHistory: {}, gameState: null,
       };
     }
   }
@@ -657,9 +856,14 @@
   }
   // Case-insensitive, missing-value-safe eligibility check — a player is
   // only "Majors" if the field exists AND lowercases to "majors". Anything
-  // missing/blank/mis-cased (or Minors/Injured) is NOT eligible.
+  // missing/blank/mis-cased (or Minors/Injured) is NOT eligible. A player
+  // currently on the Disabled List is also excluded, even if their status
+  // field still says "Majors" — the DL flag lives in state.playerStatus.
   function isMajors(player) {
-    return !!(player && player.status && String(player.status).trim().toLowerCase() === "majors");
+    if (!player || !player.status || String(player.status).trim().toLowerCase() !== "majors") return false;
+    const st = state.playerStatus && state.playerStatus[player.id];
+    if (st && st.isDL) return false;
+    return true;
   }
 
   // ==========================================================================
@@ -770,6 +974,10 @@
       // Authoritative when present (L/R/S); the name-symbol scan below is
       // only a fallback for rows where this column is blank/unrecognized.
       bats: byHeaderOrCol(headerRow, ["BATS"], "AI"),
+      // Explicit league AB cap — header text first, Column AJ fallback. This
+      // is the real seasonal usage limit; the plain "AB" column above is a
+      // separate carded stat, not the cap.
+      jhmlAbs: byHeaderOrCol(headerRow, ["JHML ABS"], "AJ"),
     };
   }
 
@@ -808,11 +1016,18 @@
     return isNaN(n) ? v : n;
   }
 
+  // League plays a 102-game season, not the MLB-standard 162 — Iron/Super
+  // Iron thresholds scale down proportionally (700 * 102/162 ≈ 441 PA for
+  // Super Iron, 600 * 102/162 ≈ 378 PA for Iron), matching the exact
+  // formula given for injury-cap eligibility.
+  const SEASON_LENGTH = 102;
+  const IRON_PA_THRESHOLD = Math.round(600 * SEASON_LENGTH / 162);
+  const SUPER_IRON_PA_THRESHOLD = Math.round(700 * SEASON_LENGTH / 162);
   function ironStatus(pa) {
     const n = Number(pa);
     if (isNaN(n)) return null;
-    if (n >= 700) return "Super Iron";
-    if (n >= 600) return "Iron";
+    if (n >= SUPER_IRON_PA_THRESHOLD) return "Super Iron";
+    if (n >= IRON_PA_THRESHOLD) return "Iron";
     return null;
   }
 
@@ -962,6 +1177,7 @@
       powerL: col(row, hc.powerL), powerR: col(row, hc.powerR),
       fieldingRaw, fielding,
       pa: numOrNull(col(row, hc.pa)),
+      jhmlAbCap: numOrNull(col(row, hc.jhmlAbs)),
       ironStatus: ironStatus(col(row, hc.pa)),
       status: "Majors", // Majors | Minors | Injured — force-set on import; re-import preserves any prior choice by name
     };
@@ -1020,6 +1236,9 @@
       rk: byHeader("rk", ["RK"]), rw: byHeader("rw", ["RW"]), rh: byHeader("rh", ["RH"]),
       rob: byHeader("rob", ["ROB"]), rtb: byHeader("rtb", ["RTB"]), rhr: byHeader("rhr", ["RHR"]),
       rbp: byHeader("rbp", ["RBP"]), rdp: byHeader("rdp", ["RDP"]),
+      // Explicit league IP cap — header text first, Column AH fallback. The
+      // plain "IP" column above is a separate carded stat, not the cap.
+      jhmlIps: byHeaderOrCol(headerRow, ["JHML IPS"], "AH"),
     };
   }
 
@@ -1144,6 +1363,7 @@
         dp: numOrZero(col(row, pc.rdp)),
       },
       hold: numOrNull(col(row, pc.hold)),
+      jhmlIpCap: numOrNull(col(row, pc.jhmlIps)),
       endurance: classifyEndurance(col(row, pc.endurance)),
       fielding: parsePitcherFielding(col(row, pc.fld)),
       bk: col(row, pc.bk), wp: col(row, pc.wp),
@@ -1244,11 +1464,16 @@
     return "—";
   }
 
-  // Cumulative season usage vs each player's carded limit (AB for hitters,
-  // IP for pitchers). Purely a visual warning — never excludes anyone from
-  // the lineup or the optimizer.
+  // Cumulative season usage vs each player's carded limit. Pitcher IP is
+  // sadly not simple decimal addition — Strat's .1/.2 notation means 6.1 +
+  // 2.2 must equal 9.0 (27 outs), not 8.3 — so the running total is kept in
+  // OUTS internally and only converted back to an innings-fraction string
+  // for display. Purely a visual warning — never excludes anyone from the
+  // lineup or the optimizer.
   function cumulativeAB(playerId) { return (state.seasonTotals.hitters[playerId] || {}).ab || 0; }
-  function cumulativeIP(playerId) { return (state.seasonTotals.pitchers[playerId] || {}).ip || 0; }
+  function cumulativeIPOuts(playerId) { return (state.seasonTotals.pitchers[playerId] || {}).outs || 0; }
+  function outsToIP(outs) { return Math.floor(outs / 3) + (outs % 3) / 10; }
+  function cumulativeIP(playerId) { return outsToIP(cumulativeIPOuts(playerId)); }
   function overLimitBadge(cumulative, carded) {
     if (carded === null || carded === undefined) return "";
     return cumulative >= carded ? ` <span class="badge badge-overlimit">OVER LIMIT</span>` : "";
@@ -1294,7 +1519,7 @@
               <div class="text-[11px] font-mono" style="color: var(--ink-soft);">${escapeHtml(p.mlbTeam || "—")}</div>
             </td>
             <td class="font-mono text-[12px]">${escapeHtml(detail)}</td>
-            <td class="font-mono">${fmtNum(p.ab)}${overLimitBadge(cumulativeAB(p.id), p.ab)}</td>
+            <td class="font-mono">${fmtNum(p.ab)}${overLimitBadge(cumulativeAB(p.id), p.jhmlAbCap)}</td>
             <td class="font-mono">${fmtNum(p.pa)}</td>
             <td>${ironBadge(p.ironStatus)}</td>
             <td>
@@ -1339,7 +1564,7 @@
         <div class="pitcher-line">
           <span>${escapeHtml(formatPitcherLine(p))}</span>
           ${p.endurance.isCloser ? `<span class="badge badge-closer">★ CLOSER</span>` : ""}
-          ${overLimitBadge(cumulativeIP(p.id), p.ip)}
+          ${overLimitBadge(cumulativeIP(p.id), p.jhmlIpCap)}
         </div>`).join("");
     }
 
@@ -1691,129 +1916,28 @@
   });
 
   // ==========================================================================
-  // WEATHER / BALLPARK d20 MATRIX — hardcoded per-team chart. Each team has
-  // 4 range tables (one per Time/Season Split) mapping a d20 roll to
-  // GOOD/AVERAGE/BAD, and a set of BPS_L/BPS_R/BPHR_L/BPHR_R values for each
-  // of those three outcomes. Teams whose chart has no distinct "Bad" bucket
-  // in the spec reuse the AVERAGE values for BAD.
+  // WEATHER / BALLPARK LOOKUP — reads live from state.weatherConfig (edited
+  // on the Season tab), not a hardcoded table. Each team/split has its own
+  // Good/Avg d20 cutoffs and its own Good/Avg/Bad BPS/BPHR stat block.
   // ==========================================================================
-  const WEATHER_MATRIX = {
-    "Baltimore Orioles": {
-      jjaNight: [[1,10,"GOOD"],[11,17,"AVERAGE"],[18,20,"BAD"]],
-      jjaDay: [[1,7,"GOOD"],[8,17,"AVERAGE"],[18,20,"BAD"]],
-      amsoNight: [[1,8,"GOOD"],[9,15,"AVERAGE"],[16,20,"BAD"]],
-      amsoDay: [[1,4,"GOOD"],[5,15,"AVERAGE"],[16,20,"BAD"]],
-      values: { GOOD:{bpsL:17,bpsR:5,bphrL:18,bphrR:15}, AVERAGE:{bpsL:16,bpsR:4,bphrL:14,bphrR:17}, BAD:{bpsL:14,bpsR:2,bphrL:15,bphrR:12} },
-    },
-    "Chicago Cubs": {
-      jjaNight: [[1,11,"GOOD"],[12,17,"AVERAGE"],[18,20,"BAD"]],
-      jjaDay: [[1,7,"GOOD"],[8,17,"AVERAGE"],[18,20,"BAD"]],
-      amsoNight: [[1,7,"GOOD"],[8,14,"AVERAGE"],[15,20,"BAD"]],
-      amsoDay: [[1,4,"GOOD"],[5,13,"AVERAGE"],[14,20,"BAD"]],
-      values: { GOOD:{bpsL:7,bpsR:4,bphrL:11,bphrR:12}, AVERAGE:{bpsL:5,bpsR:1,bphrL:2,bphrR:8}, BAD:{bpsL:2,bpsR:0,bphrL:2,bphrR:1} },
-    },
-    "Chicago Islanders": {
-      jjaNight: [[1,11,"GOOD"],[12,17,"AVERAGE"],[18,20,"BAD"]],
-      jjaDay: [[1,7,"GOOD"],[8,17,"AVERAGE"],[18,20,"BAD"]],
-      amsoNight: [[1,7,"GOOD"],[8,14,"AVERAGE"],[15,20,"BAD"]],
-      amsoDay: [[1,4,"GOOD"],[5,13,"AVERAGE"],[14,20,"BAD"]],
-      values: { GOOD:{bpsL:8,bpsR:8,bphrL:10,bphrR:10}, AVERAGE:{bpsL:6,bpsR:6,bphrL:8,bphrR:8}, BAD:{bpsL:3,bpsR:3,bphrL:5,bphrR:5} },
-    },
-    "Cincinnati Roses": {
-      jjaNight: [[1,12,"GOOD"],[13,17,"AVERAGE"],[18,20,"BAD"]],
-      jjaDay: [[1,7,"GOOD"],[8,17,"AVERAGE"],[18,20,"BAD"]],
-      amsoNight: [[1,8,"GOOD"],[9,15,"AVERAGE"],[16,20,"BAD"]],
-      amsoDay: [[1,4,"GOOD"],[5,14,"AVERAGE"],[15,20,"BAD"]],
-      values: { GOOD:{bpsL:8,bpsR:8,bphrL:17,bphrR:20}, AVERAGE:{bpsL:6,bpsR:6,bphrL:15,bphrR:18}, BAD:{bpsL:3,bpsR:3,bphrL:12,bphrR:15} },
-    },
-    "Detroit Motors": {
-      jjaNight: [[1,12,"GOOD"],[13,17,"AVERAGE"],[18,20,"BAD"]],
-      jjaDay: [[1,7,"GOOD"],[8,17,"AVERAGE"],[18,20,"BAD"]],
-      amsoNight: [[1,7,"GOOD"],[8,12,"AVERAGE"],[13,20,"BAD"]],
-      amsoDay: [[1,3,"GOOD"],[4,13,"AVERAGE"],[14,20,"BAD"]],
-      values: { GOOD:{bpsL:10,bpsR:10,bphrL:12,bphrR:12}, AVERAGE:{bpsL:9,bpsR:9,bphrL:10,bphrR:10}, BAD:{bpsL:8,bpsR:8,bphrL:7,bphrR:7} },
-    },
-    "Los Angeles Thieves": {
-      jjaNight: [[1,9,"GOOD"],[10,19,"AVERAGE"],[20,20,"BAD"]],
-      jjaDay: [[1,16,"GOOD"],[17,19,"AVERAGE"],[20,20,"BAD"]],
-      amsoNight: [[1,12,"GOOD"],[13,19,"AVERAGE"],[20,20,"BAD"]],
-      amsoDay: [[1,7,"GOOD"],[8,19,"AVERAGE"],[20,20,"BAD"]],
-      values: { GOOD:{bpsL:2,bpsR:2,bphrL:18,bphrR:12}, AVERAGE:{bpsL:1,bpsR:1,bphrL:16,bphrR:10}, BAD:{bpsL:0,bpsR:0,bphrL:15,bphrR:9} },
-    },
-    "Miami Marlins": {
-      jjaNight: [[1,19,"GOOD"],[20,20,"AVERAGE"]],
-      jjaDay: [[1,17,"GOOD"],[18,20,"AVERAGE"]],
-      amsoNight: [[1,15,"GOOD"],[16,20,"AVERAGE"]],
-      amsoDay: [[1,17,"GOOD"],[18,20,"AVERAGE"]],
-      values: (() => { const avg = {bpsL:12,bpsR:9,bphrL:3,bphrR:9}; return { GOOD:{bpsL:14,bpsR:11,bphrL:11,bphrR:5}, AVERAGE: avg, BAD: avg }; })(),
-    },
-    "Milwaukee Ueckers": {
-      jjaNight: [[1,13,"GOOD"],[14,20,"AVERAGE"]],
-      jjaDay: [[1,7,"GOOD"],[8,20,"AVERAGE"]],
-      amsoNight: [[1,4,"GOOD"],[5,20,"AVERAGE"]],
-      amsoDay: [[1,10,"GOOD"],[11,20,"AVERAGE"]],
-      values: (() => { const avg = {bpsL:2,bpsR:2,bphrL:11,bphrR:11}; return { GOOD:{bpsL:3,bpsR:3,bphrL:13,bphrR:13}, AVERAGE: avg, BAD: avg }; })(),
-    },
-    "New York Survivors": {
-      jjaNight: [[1,12,"GOOD"],[13,17,"AVERAGE"],[18,20,"BAD"]],
-      jjaDay: [[1,7,"GOOD"],[8,17,"AVERAGE"],[18,20,"BAD"]],
-      amsoNight: [[1,4,"GOOD"],[5,14,"AVERAGE"],[15,20,"BAD"]],
-      amsoDay: [[1,8,"GOOD"],[9,15,"AVERAGE"],[16,20,"BAD"]],
-      values: { GOOD:{bpsL:2,bpsR:2,bphrL:8,bphrR:14}, AVERAGE:{bpsL:1,bpsR:1,bphrL:13,bphrR:7}, BAD:{bpsL:0,bpsR:0,bphrL:5,bphrR:11} },
-    },
-    "Pittsburgh Pirates": {
-      jjaNight: [[1,7,"GOOD"],[8,17,"AVERAGE"],[18,20,"BAD"]],
-      jjaDay: [[1,12,"GOOD"],[13,17,"AVERAGE"],[18,20,"BAD"]],
-      amsoNight: [[1,4,"GOOD"],[5,13,"AVERAGE"],[14,20,"BAD"]],
-      amsoDay: [[1,8,"GOOD"],[9,14,"AVERAGE"],[15,20,"BAD"]],
-      values: { GOOD:{bpsL:17,bpsR:17,bphrL:6,bphrR:6}, AVERAGE:{bpsL:15,bpsR:15,bphrL:4,bphrR:4}, BAD:{bpsL:12,bpsR:12,bphrL:1,bphrR:1} },
-    },
-    "San Diego A-Sox": {
-      jjaNight: [[1,13,"GOOD"],[14,19,"AVERAGE"],[20,20,"BAD"]],
-      jjaDay: [[1,8,"GOOD"],[9,19,"AVERAGE"],[20,20,"BAD"]],
-      amsoNight: [[1,6,"GOOD"],[7,19,"AVERAGE"],[20,20,"BAD"]],
-      amsoDay: [[1,10,"GOOD"],[11,19,"AVERAGE"],[20,20,"BAD"]],
-      values: { GOOD:{bpsL:2,bpsR:2,bphrL:11,bphrR:11}, AVERAGE:{bpsL:1,bpsR:1,bphrL:9,bphrR:9}, BAD:{bpsL:0,bpsR:0,bphrL:8,bphrR:8} },
-    },
-    "San Francisco Quakes": {
-      jjaNight: [[1,6,"GOOD"],[7,10,"AVERAGE"],[11,20,"BAD"]],
-      jjaDay: [[1,10,"GOOD"],[11,19,"AVERAGE"],[20,20,"BAD"]],
-      amsoNight: [[1,5,"GOOD"],[6,8,"AVERAGE"],[9,20,"BAD"]],
-      amsoDay: [[1,8,"GOOD"],[9,18,"AVERAGE"],[19,20,"BAD"]],
-      values: { GOOD:{bpsL:12,bpsR:12,bphrL:6,bphrR:6}, AVERAGE:{bpsL:11,bpsR:11,bphrL:4,bphrR:4}, BAD:{bpsL:10,bpsR:10,bphrL:2,bphrR:2} },
-    },
-    "Tampa Bay Phenom": {
-      jjaNight: [[1,6,"GOOD"],[7,15,"AVERAGE"],[16,20,"BAD"]],
-      jjaDay: [[1,1,"GOOD"],[2,6,"AVERAGE"],[7,20,"BAD"]],
-      amsoNight: [[1,7,"GOOD"],[8,16,"AVERAGE"],[17,20,"BAD"]],
-      amsoDay: [[1,11,"GOOD"],[12,16,"AVERAGE"],[17,20,"BAD"]],
-      values: { GOOD:{bpsL:9,bpsR:18,bphrL:13,bphrR:16}, AVERAGE:{bpsL:5,bpsR:14,bphrL:9,bphrR:12}, BAD:{bpsL:4,bpsR:13,bphrL:11,bphrR:8} },
-    },
-    "Washington Senators": {
-      jjaNight: [[1,7,"GOOD"],[8,17,"AVERAGE"],[18,20,"BAD"]],
-      jjaDay: [[1,11,"GOOD"],[12,17,"AVERAGE"],[18,20,"BAD"]],
-      amsoNight: [[1,9,"GOOD"],[10,16,"AVERAGE"],[17,20,"BAD"]],
-      amsoDay: [[1,5,"GOOD"],[6,15,"AVERAGE"],[16,20,"BAD"]],
-      values: { GOOD:{bpsL:11,bpsR:11,bphrL:10,bphrR:10}, AVERAGE:{bpsL:10,bpsR:10,bphrL:7,bphrR:7}, BAD:{bpsL:8,bpsR:8,bphrL:6,bphrR:6} },
-    },
-  };
-
-  function classifyRoll(ranges, roll) {
-    for (const [lo, hi, label] of ranges) { if (roll >= lo && roll <= hi) return label; }
-    return ranges[ranges.length - 1][2];
+  function classifyRollByMax(splitCfg, roll) {
+    if (roll <= splitCfg.goodMax) return "GOOD";
+    if (roll <= splitCfg.avgMax) return "AVERAGE";
+    return "BAD";
   }
 
   // Resolves the active ballpark (Home -> my team's park, Away -> opponent's),
   // the current condition (GOOD/AVERAGE/BAD) from the d20 roll + split, and
   // the four BPS/BPHR values currently feeding the matchup calculation. Teams
-  // not found in the hardcoded matrix return null — treated as no adjustment.
+  // not found in the configurator return null — treated as no adjustment.
   // Case/whitespace-insensitive lookup — a CSV team name like "detroit motors "
   // or "DETROIT MOTORS" should still resolve against the exact chart key.
   function findWeatherChart(teamName) {
-    if (WEATHER_MATRIX[teamName]) return WEATHER_MATRIX[teamName];
+    const cfg = state.weatherConfig || {};
+    if (cfg[teamName]) return cfg[teamName];
     const norm = String(teamName || "").trim().toLowerCase();
-    const key = Object.keys(WEATHER_MATRIX).find(k => k.toLowerCase() === norm);
-    return key ? WEATHER_MATRIX[key] : null;
+    const key = Object.keys(cfg).find(k => k.toLowerCase() === norm);
+    return key ? cfg[key] : null;
   }
 
   function resolveWeather() {
@@ -1823,9 +1947,12 @@
     const parkTeam = homeAway === "Home" ? lineupTeamSelect.value : lineupOppTeamSelect.value;
     const chart = findWeatherChart(parkTeam);
     if (!chart) return { parkTeam, homeAway, roll, condition: null, values: null };
-    const condition = classifyRoll(chart[splitKey] || chart.jjaNight, roll);
-    return { parkTeam, homeAway, roll, condition, values: chart.values[condition] };
+    const splitCfg = chart[splitKey] || chart.jjaNight;
+    const condition = classifyRollByMax(splitCfg, roll);
+    const statBlock = condition === "GOOD" ? splitCfg.good : condition === "AVERAGE" ? splitCfg.avg : splitCfg.bad;
+    return { parkTeam, homeAway, roll, condition, values: statBlock };
   }
+
 
   // Reads the 4 manual override fields' CURRENT values — this, not the raw
   // chart lookup, is what actually feeds calcMatchup. The chart lookup only
@@ -1882,15 +2009,33 @@
     weatherStatusPanel.innerHTML = `
       <div class="flex flex-wrap items-center gap-3">
         <span>${escapeHtml(w.parkTeam)} (${w.homeAway}) — Roll: ${w.roll}</span>
-        <span class="font-bold" style="color: ${conditionColor};">${w.condition}</span>
+        <span class="font-bold" style="color: ${conditionColor};">WEATHER: ${w.condition}</span>
         <span style="color: var(--ink-soft);">(chart default — override fields below are what's actually used)</span>
       </div>`;
   }
 
   // --------------------------------------------------------------------------
-  // Handedness matchup split-picker: which of the batter's two splits
-  // (vsLHP/vsRHP) and which of the pitcher's two splits (vsLHB/vsRHB) apply,
-  // based on the pitcher's throwing hand and the batter's side of the plate.
+  // MATCHUP OPS ENGINE — the 50/50 card-split formula.
+  //
+  // Which of the batter's two splits (vsLHP / vsRHP) gets used depends on the
+  // PITCHER's throwing hand (that's who's actually on the mound), and which
+  // of the PITCHER's two splits (vsLHB / vsRHB) gets used depends on which
+  // side of the plate the BATTER effectively stands on against that pitcher
+  // (a switch-hitter always bats opposite the pitcher's hand):
+  //
+  //   Pitcher throws L:
+  //     Batter is L        -> batter.vsLHP + pitcher.vsLHB
+  //     Batter is R or S    -> batter.vsLHP + pitcher.vsRHB
+  //   Pitcher throws R:
+  //     Batter is R        -> batter.vsRHP + pitcher.vsRHB
+  //     Batter is L or S    -> batter.vsRHP + pitcher.vsLHB
+  //
+  // Since this data is raw Strat-O-Matic dice-range counts rather than true
+  // rate stats (no real OBP/SLG to add), "Matchup OPS" here is a deliberately
+  // simple proxy: the average On-Base count plus the average Total-Base count
+  // (each blended 50/50 between batter and pitcher), nudged by the ballpark
+  // and weather modifiers below. It's meant for RELATIVE ranking of your own
+  // roster against one pitcher, not as a literal on-base/slugging percentage.
   // --------------------------------------------------------------------------
   function pickSplits(batter, pitcher) {
     if (pitcher.throwsHand === "L") {
@@ -2383,6 +2528,94 @@
   const ingameBenchEmpty = document.getElementById("ingame-bench-empty");
   const ingameExtinguishedEl = document.getElementById("ingame-extinguished");
   const ingameExtinguishedEmpty = document.getElementById("ingame-extinguished-empty");
+  const bullpenAssistantList = document.getElementById("bullpen-assistant-list");
+  const bullpenAssistantEmpty = document.getElementById("bullpen-assistant-empty");
+  const opponentLineupGridEl = document.getElementById("opponent-lineup-grid");
+
+  // LIVE OPPONENT LINEUP TRACKER — 9 ordered slots, each an actual hitter
+  // from the opponent's real Majors roster (not freeform text) with an
+  // optional bats override (for testing a pinch-hitter's handedness before
+  // locking in the substitution). Persisted on gameState so it survives a
+  // reload mid-game.
+  function renderOpponentLineupGrid() {
+    const gs = state.gameState;
+    if (!gs) { opponentLineupGridEl.innerHTML = ""; return; }
+    gs.opponentLineup = gs.opponentLineup || Array.from({ length: 9 }, () => ({ hitterId: null, batsOverride: "" }));
+    const oppHitters = state.hitters.filter(p => p.jhmlTeam === gs.opponentTeam);
+    opponentLineupGridEl.innerHTML = gs.opponentLineup.map((slot, i) => {
+      const hitterOptions = `<option value="">— empty —</option>` + oppHitters.map(p =>
+        `<option value="${p.id}" ${slot.hitterId === p.id ? "selected" : ""}>${escapeHtml(p.name)} (${p.bats[0]})</option>`
+      ).join("");
+      return `
+        <div class="lineup-slot-card">
+          <span class="lineup-slot-num" style="font-size:14px;">${i + 1}</span>
+          <select class="status-select opp-lineup-hitter" data-slot-index="${i}" style="flex:1;">${hitterOptions}</select>
+          <select class="status-select opp-lineup-bats" data-slot-index="${i}">
+            <option value="" ${slot.batsOverride === "" ? "selected" : ""}>Use Card</option>
+            <option value="Left" ${slot.batsOverride === "Left" ? "selected" : ""}>L</option>
+            <option value="Right" ${slot.batsOverride === "Right" ? "selected" : ""}>R</option>
+            <option value="Switch" ${slot.batsOverride === "Switch" ? "selected" : ""}>S</option>
+          </select>
+        </div>`;
+    }).join("");
+    opponentLineupGridEl.querySelectorAll(".opp-lineup-hitter").forEach(sel => {
+      sel.addEventListener("change", () => {
+        gs.opponentLineup[Number(sel.dataset.slotIndex)].hitterId = sel.value || null;
+        saveData();
+        renderBullpenAssistant();
+      });
+    });
+    opponentLineupGridEl.querySelectorAll(".opp-lineup-bats").forEach(sel => {
+      sel.addEventListener("change", () => {
+        gs.opponentLineup[Number(sel.dataset.slotIndex)].batsOverride = sel.value;
+        saveData();
+        renderBullpenAssistant();
+      });
+    });
+  }
+
+  // BULLPEN ASSISTANT — ranks fresh (not Tired, not on the DL) relievers by
+  // matchup quality against the next 1-3 FILLED slots of the live opponent
+  // lineup tracker above (in order, starting from slot 1); falls back to the
+  // opponent's top 3 Majors-eligible hitters if no live lineup was entered.
+  function renderBullpenAssistant() {
+    const gs = state.gameState;
+    if (!gs) { bullpenAssistantList.innerHTML = ""; bullpenAssistantEmpty.classList.remove("hidden"); return; }
+    const weatherValues = getOverrideValues();
+    const myRelievers = state.pitchers.filter(p => p.jhmlTeam === gs.myTeam && (p.endurance.isReliever || p.endurance.isCloser));
+    const fresh = myRelievers.filter(p => {
+      const st = state.playerStatus[p.id];
+      return !(st && (st.tiredDaysRemaining > 0 || st.isDL));
+    });
+    bullpenAssistantEmpty.classList.toggle("hidden", fresh.length > 0);
+    let oppHitters = [];
+    if (gs.opponentLineup && gs.opponentLineup.some(s => s.hitterId)) {
+      oppHitters = gs.opponentLineup
+        .filter(s => s.hitterId)
+        .slice(0, 3)
+        .map(s => {
+          const h = state.hitters.find(p => p.id === s.hitterId);
+          return h && s.batsOverride ? { ...h, bats: s.batsOverride } : h;
+        })
+        .filter(Boolean);
+    } else {
+      oppHitters = state.hitters.filter(p => p.jhmlTeam === gs.opponentTeam && isMajors(p)).slice(0, 3);
+    }
+    const ranked = fresh.map(p => {
+      const opsAllowed = oppHitters.length
+        ? oppHitters.reduce((sum, h) => sum + calcMatchup(h, p, weatherValues).ops, 0) / oppHitters.length
+        : 0;
+      return { p, opsAllowed };
+    }).sort((a, b) => a.opsAllowed - b.opsAllowed);
+    bullpenAssistantList.innerHTML = ranked.map(({ p, opsAllowed }) => `
+      <div class="lineup-slot-card">
+        <div class="flex-1 min-w-0 text-sm">
+          <span class="font-medium">${escapeHtml(p.name)} (${p.throwsHand})</span>
+          <span class="text-[11px] font-mono" style="color: var(--ink-soft);"> — avg OPS allowed to next batters: ${opsAllowed.toFixed(3)}</span>
+          ${p.endurance.isCloser ? '<span class="badge badge-closer">★ CLOSER</span>' : ""}
+        </div>
+      </div>`).join("");
+  }
 
   const PINCH_ALERT_THRESHOLD = 0.05; // OPS gap considered "significantly higher"
   let ingameSelectedBenchId = null; // bench player currently selected for a manual swap
@@ -2557,6 +2790,9 @@
           <div class="text-[11px] font-mono" style="color: var(--ink-soft);">Removed from the game — ineligible to re-enter.</div>
         </div>
       </div>`).join("");
+
+    renderOpponentLineupGrid();
+    renderBullpenAssistant();
   }
 
   ingameRelieverSelect.addEventListener("change", () => {
@@ -2577,13 +2813,15 @@
     weather: document.getElementById("seasonview-weather"),
     schedule: document.getElementById("seasonview-schedule"),
     postgame: document.getElementById("seasonview-postgame"),
-    trades: document.getElementById("seasonview-trades"),
+    transactions: document.getElementById("seasonview-transactions"),
+    timelines: document.getElementById("seasonview-timelines"),
   };
   seasonViewButtons.forEach(btn => {
     btn.addEventListener("click", () => {
       seasonViewButtons.forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       Object.entries(seasonViewPanels).forEach(([key, panel]) => panel.classList.toggle("hidden", key !== btn.dataset.seasonview));
+      if (btn.dataset.seasonview === "timelines") renderTimelines();
     });
   });
 
@@ -2597,207 +2835,810 @@
     seasonEmptyState.classList.add("hidden");
     seasonBodyEl.classList.remove("hidden");
     renderWeatherMatrix();
-    renderScheduleForm();
-    renderScheduleList();
-    renderPostgameTeamSelect();
-    renderTradeForm();
-    renderTradeLog();
+    renderScheduleTab();
+    renderPostgameTab();
+    renderTransactionsTab();
   }
 
-  // ---- Weather Matrix -------------------------------------------------------
+  // ---- Weather Matrix (Ballpark & Weather Configurator) ---------------------
   const weatherMatrixList = document.getElementById("weather-matrix-list");
-  const WEATHER_STATUSES = ["GOOD", "AVERAGE", "BAD"];
+  const WEATHER_STAT_FIELDS = [
+    ["bpsL", "BPS-L"], ["bpsR", "BPS-R"], ["bphrL", "BPHR-L"], ["bphrR", "BPHR-R"],
+  ];
+  const WEATHER_CONDITIONS = [["good", "Good"], ["avg", "Avg"], ["bad", "Bad"]];
 
+  // One <tr> per split, with a Good-Max / Avg-Max pair plus 4 stat fields for
+  // each of Good/Avg/Bad (14 inputs total). Every input carries data-team /
+  // data-split / data-field (or data-condition + data-stat) so the single
+  // delegated listener below knows exactly which value in state.weatherConfig
+  // it maps to.
   function renderWeatherMatrix() {
-    const teams = getUniqueTeams().filter(t => t !== "Free Agent");
-    weatherMatrixList.innerHTML = teams.map(t => {
-      const current = state.weatherMatrix[t] || "AVERAGE";
+    weatherMatrixList.innerHTML = WEATHER_TEAM_NAMES.map(team => {
+      const teamCfg = state.weatherConfig[team];
+      if (!teamCfg) return "";
+      const rows = WEATHER_SPLITS.map(split => {
+        const s = teamCfg[split];
+        const maxInputs = `
+          <td><input type="number" class="weather-cfg-input" style="width:3.2rem;" value="${s.goodMax}" data-team="${escapeHtml(team)}" data-split="${split}" data-field="goodMax"></td>
+          <td><input type="number" class="weather-cfg-input" style="width:3.2rem;" value="${s.avgMax}" data-team="${escapeHtml(team)}" data-split="${split}" data-field="avgMax"></td>`;
+        const statCells = WEATHER_CONDITIONS.map(([condKey]) =>
+          WEATHER_STAT_FIELDS.map(([statKey]) => `
+          <td><input type="number" class="weather-cfg-input" style="width:3rem;" value="${s[condKey][statKey]}" data-team="${escapeHtml(team)}" data-split="${split}" data-condition="${condKey}" data-stat="${statKey}"></td>`
+          ).join("")
+        ).join("");
+        return `<tr><td class="left" style="white-space:nowrap;">${escapeHtml(WEATHER_SPLIT_LABELS[split])}</td>${maxInputs}${statCells}</tr>`;
+      }).join("");
       return `
-        <div class="card-panel rounded-md p-2 flex items-center justify-between gap-2">
-          <span class="text-sm font-medium">${escapeHtml(t)}</span>
-          <select class="field-input rounded px-2 py-1 text-sm weather-team-select" data-team="${escapeHtml(t)}">
-            ${WEATHER_STATUSES.map(s => `<option value="${s}" ${s === current ? "selected" : ""}>${s}</option>`).join("")}
-          </select>
+        <div class="card-panel rounded-md p-3 mb-4">
+          <div class="position-group-title">${escapeHtml(team)}</div>
+          <div class="overflow-x-auto">
+            <table class="data-table weather-cfg-table">
+              <thead>
+                <tr>
+                  <th class="left" rowspan="2">Split</th>
+                  <th rowspan="2">Good<br>Max</th><th rowspan="2">Avg<br>Max</th>
+                  <th colspan="4">Good Stats</th><th colspan="4">Avg Stats</th><th colspan="4">Bad Stats</th>
+                </tr>
+                <tr>
+                  ${WEATHER_CONDITIONS.map(() => WEATHER_STAT_FIELDS.map(([, label]) => `<th class="font-mono">${label}</th>`).join("")).join("")}
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
         </div>`;
     }).join("");
-    weatherMatrixList.querySelectorAll(".weather-team-select").forEach(sel => {
-      sel.addEventListener("change", () => {
-        state.weatherMatrix[sel.dataset.team] = sel.value;
-        saveData();
-      });
-    });
   }
 
-  // ---- Schedule ---------------------------------------------------------
-  const schedHomeTeamSelect = document.getElementById("sched-home-team");
-  const schedAwayTeamSelect = document.getElementById("sched-away-team");
-  const schedAwayPitcherSelect = document.getElementById("sched-away-pitcher");
-  const schedAddBtn = document.getElementById("sched-add-btn");
+  // Single delegated listener — far cheaper than one per input across 14
+  // teams x 4 splits x 14 fields. Writes straight into state.weatherConfig
+  // and persists, then refreshes the Lineup Optimizer's live weather readout
+  // in case the team/split currently open there was just edited.
+  weatherMatrixList.addEventListener("input", (e) => {
+    const el = e.target;
+    if (!el.classList.contains("weather-cfg-input")) return;
+    const { team, split, field, condition, stat } = el.dataset;
+    const splitCfg = state.weatherConfig[team] && state.weatherConfig[team][split];
+    if (!splitCfg) return;
+    const val = Number(el.value) || 0;
+    if (field) splitCfg[field] = val;
+    else if (condition && stat) splitCfg[condition][stat] = val;
+    saveData();
+    try { renderWeatherStatusPanel(true); } catch (err) { /* Lineup tab not initialized yet */ }
+  });
+
+  // ==========================================================================
+  // SCHEDULE — Dynamic Series Builder. Series are appended one at a time
+  // (opponent / venue / length chosen by the GM) rather than auto-generated
+  // for the whole season, so the ledger always reflects real scheduling
+  // decisions as they're made.
+  // ==========================================================================
+  const schedMyTeamSelect = document.getElementById("sched-myteam-select");
+  const schedOpponentSelect = document.getElementById("sched-opponent-select");
+  const schedVenueSelect = document.getElementById("sched-venue-select");
+  const schedLenSelect = document.getElementById("sched-len-select");
+  const schedCreateSeriesBtn = document.getElementById("sched-create-series-btn");
   const scheduleListEl = document.getElementById("schedule-list");
   const scheduleEmptyEl = document.getElementById("schedule-empty");
   const seasonProgressLabel = document.getElementById("season-progress-label");
+  const seasonNextLabel = document.getElementById("season-next-label");
+  const frontOfficeRecEl = document.getElementById("frontoffice-rec");
 
-  function renderScheduleForm() {
-    const teams = getUniqueTeams();
-    const teamOptions = teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
-    schedHomeTeamSelect.innerHTML = teamOptions;
-    schedAwayTeamSelect.innerHTML = teamOptions;
-    if (teams.length > 1) schedAwayTeamSelect.value = teams.find(t => t !== schedHomeTeamSelect.value) || teams[1];
-    renderSchedAwayPitcherOptions();
-  }
-  function renderSchedAwayPitcherOptions() {
-    const staff = state.pitchers.filter(p => p.jhmlTeam === schedAwayTeamSelect.value);
-    schedAwayPitcherSelect.innerHTML = staff.length
-      ? staff.map(p => `<option value="${p.id}">${escapeHtml(p.name)} (${p.throwsHand})</option>`).join("")
-      : `<option value="">No pitchers on this team</option>`;
-  }
-  schedAwayTeamSelect.addEventListener("change", renderSchedAwayPitcherOptions);
-
-  schedAddBtn.addEventListener("click", () => {
-    const homeTeam = schedHomeTeamSelect.value;
-    const awayTeam = schedAwayTeamSelect.value;
-    const awayPitcherId = schedAwayPitcherSelect.value;
-    if (!homeTeam || !awayTeam) return;
-    state.schedule.push({
-      id: uid(), gameNumber: state.schedule.length + 1,
-      homeTeam, awayTeam, awayPitcherId: awayPitcherId || null,
-    });
-    saveData();
+  function renderScheduleTab() {
+    const teams = getUniqueTeams().filter(t => t !== "Free Agent");
+    const prev = state.scheduleMyTeam;
+    schedMyTeamSelect.innerHTML = teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
+    schedMyTeamSelect.value = teams.includes(prev) ? prev : (teams.includes("Detroit Motors") ? "Detroit Motors" : teams[0]);
+    state.scheduleMyTeam = schedMyTeamSelect.value;
+    const oppTeams = teams.filter(t => t !== schedMyTeamSelect.value);
+    schedOpponentSelect.innerHTML = oppTeams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
     renderScheduleList();
+  }
+  schedMyTeamSelect.addEventListener("change", () => {
+    state.scheduleMyTeam = schedMyTeamSelect.value;
+    saveData();
+    const oppTeams = getUniqueTeams().filter(t => t !== "Free Agent" && t !== schedMyTeamSelect.value);
+    schedOpponentSelect.innerHTML = oppTeams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
   });
 
+  function nextUnplayedGameIndex() {
+    return state.scheduleRows.findIndex(r => r.type === "game" && !r.completed);
+  }
+  function currentSeriesNumber() {
+    const idx = nextUnplayedGameIndex();
+    if (idx === -1) {
+      const games = state.scheduleRows.filter(r => r.type === "game");
+      return games.length ? games[games.length - 1].seriesNum : 0;
+    }
+    return state.scheduleRows[idx].seriesNum;
+  }
+
+  // FRONT OFFICE RECOMMENDATION — on creating a series, compares the
+  // opponent's Starting-Pitcher handedness mix against my Minors-status
+  // hitters' matchup quality (vs. the opponent's most likely starter) to
+  // flag a possible platoon recall.
+  function renderFrontOfficeRecommendation(myTeam, opponent) {
+    const oppStarters = state.pitchers.filter(p => p.jhmlTeam === opponent && p.endurance.isStarter);
+    if (!oppStarters.length) { frontOfficeRecEl.classList.add("hidden"); return; }
+    const lCount = oppStarters.filter(p => p.throwsHand === "L").length;
+    const rCount = oppStarters.length - lCount;
+    const probableStarter = oppStarters[0];
+    const weatherValues = getOverrideValues();
+    const minorsHitters = state.hitters.filter(p => p.jhmlTeam === myTeam && String(p.status || "").trim().toLowerCase() === "minors");
+    const activeHitters = state.hitters.filter(p => p.jhmlTeam === myTeam && isMajors(p));
+    if (!minorsHitters.length || !activeHitters.length) { frontOfficeRecEl.classList.add("hidden"); return; }
+    const bestMinors = minorsHitters
+      .map(p => ({ p, ops: calcMatchup(p, probableStarter, weatherValues).ops }))
+      .sort((a, b) => b.ops - a.ops)[0];
+    const worstActive = activeHitters
+      .map(p => ({ p, ops: calcMatchup(p, probableStarter, weatherValues).ops }))
+      .sort((a, b) => a.ops - b.ops)[0];
+    if (bestMinors.ops - worstActive.ops > 0.03) {
+      const handNote = lCount > rCount ? "left-handed-heavy" : rCount > lCount ? "right-handed-heavy" : "mixed";
+      frontOfficeRecEl.classList.remove("hidden");
+      frontOfficeRecEl.innerHTML = `🧢 <strong>Front Office Recommendation:</strong> ${escapeHtml(opponent)}'s rotation looks ${handNote} (probable starter ${escapeHtml(probableStarter.name)}, ${probableStarter.throwsHand}). `
+        + `${escapeHtml(bestMinors.p.name)} projects to a ${bestMinors.ops.toFixed(3)} OPS in that matchup vs. ${escapeHtml(worstActive.p.name)}'s ${worstActive.ops.toFixed(3)} on your active roster — consider a Transactions-tab recall for this series.`;
+    } else {
+      frontOfficeRecEl.classList.add("hidden");
+    }
+  }
+
+  schedCreateSeriesBtn.addEventListener("click", () => {
+    const myTeam = schedMyTeamSelect.value;
+    const opponent = schedOpponentSelect.value;
+    const venue = schedVenueSelect.value;
+    const len = Number(schedLenSelect.value) || 3;
+    if (!myTeam || !opponent) return;
+    state.scheduleMyTeam = myTeam;
+    const games = state.scheduleRows.filter(r => r.type === "game");
+    let seriesNum = games.length ? games[games.length - 1].seriesNum + 1 : 1;
+    let overallGame = games.length ? games[games.length - 1].overallGame : 0;
+    const myStarters = state.pitchers.filter(p => p.jhmlTeam === myTeam && p.endurance.isStarter);
+    const oppStarters = state.pitchers.filter(p => p.jhmlTeam === opponent && p.endurance.isStarter);
+    const isHome = venue === "Home";
+    for (let g = 1; g <= len; g++) {
+      overallGame++;
+      const isLast = g === len;
+      const hStarter = isHome ? myStarters[(overallGame - 1) % (myStarters.length || 1)] : oppStarters[(overallGame - 1) % (oppStarters.length || 1)];
+      const vStarter = isHome ? oppStarters[(overallGame - 1) % (oppStarters.length || 1)] : myStarters[(overallGame - 1) % (myStarters.length || 1)];
+      state.scheduleRows.push({
+        type: "game", id: uid(), seriesNum, gameInSeries: g, overallGame,
+        opponent, homeAway: isHome ? "Home" : "Away",
+        dayNight: isLast ? "Day" : "Night",
+        hStarterId: hStarter ? hStarter.id : null, vStarterId: vStarter ? vStarter.id : null,
+        awayRuns: null, homeRuns: null, awayHits: null, homeHits: null, awayErrors: null, homeErrors: null,
+        awayPitcherId: null, homePitcherId: null, awayDecision: null, homeDecision: null, savePitcherId: null,
+        usedLineup: null, injuriesLogged: [], movesThatDay: [],
+        completed: false,
+      });
+    }
+    // The very first-ever Home game of the year is forced Day, regardless
+    // of where it falls in this series.
+    const firstHome = state.scheduleRows.find(r => r.type === "game" && r.homeAway === "Home");
+    if (firstHome) firstHome.dayNight = "Day";
+    saveData();
+    renderScheduleList();
+    renderPostgameTab();
+    renderFrontOfficeRecommendation(myTeam, opponent);
+  });
+
+  // AUTOMATED DAY OFF INJECTION — the moment a series' last game is
+  // submitted, check whether that was the 3rd consecutive series completed
+  // since the last Day Off; if so, inject one immediately and apply its
+  // extra recovery day right away (on top of the normal per-game tick).
+  function checkAndInjectDayOff(justCompletedSeriesNum) {
+    const seriesGames = state.scheduleRows.filter(r => r.type === "game" && r.seriesNum === justCompletedSeriesNum);
+    const seriesFullyDone = seriesGames.length > 0 && seriesGames.every(g => g.completed);
+    if (!seriesFullyDone) return;
+    state.seriesSinceDayOff = (state.seriesSinceDayOff || 0) + 1;
+    if (state.seriesSinceDayOff >= 3) {
+      state.scheduleRows.push({ type: "dayoff", id: uid(), afterSeriesNum: justCompletedSeriesNum });
+      state.seriesSinceDayOff = 0;
+      Object.values(state.playerStatus).forEach(st => {
+        if (st.injuryDaysRemaining > 0) st.injuryDaysRemaining = Math.max(0, st.injuryDaysRemaining - 1);
+        if (st.tiredDaysRemaining > 0) st.tiredDaysRemaining = Math.max(0, st.tiredDaysRemaining - 1);
+        if (st.isDL) st.dlDaysServed += 1;
+      });
+    }
+  }
+
   function renderScheduleList() {
-    seasonProgressLabel.textContent = `Game ${state.seasonGameCount} of 102`;
-    scheduleEmptyEl.classList.toggle("hidden", state.schedule.length > 0);
-    scheduleListEl.innerHTML = state.schedule.map(g => {
-      const pitcher = state.pitchers.find(p => p.id === g.awayPitcherId);
+    const games = state.scheduleRows.filter(r => r.type === "game");
+    const playedCount = games.filter(g => g.completed).length;
+    seasonProgressLabel.textContent = state.scheduleRows.length ? `Game ${playedCount} of ${games.length} scheduled` : `No games scheduled`;
+    const nextIdx = nextUnplayedGameIndex();
+    const nextRow = nextIdx !== -1 ? state.scheduleRows[nextIdx] : null;
+    seasonNextLabel.textContent = nextRow
+      ? `Game ${nextRow.overallGame} ${nextRow.homeAway === "Home" ? "vs" : "@"} ${nextRow.opponent} (${nextRow.homeAway}, ${nextRow.dayNight})`
+      : (state.scheduleRows.length ? "All scheduled games completed" : "—");
+    scheduleEmptyEl.classList.toggle("hidden", state.scheduleRows.length > 0);
+    scheduleListEl.innerHTML = state.scheduleRows.map(row => {
+      if (row.type === "dayoff") {
+        return `<div class="rounded-md p-2 text-center text-xs font-bold uppercase tracking-wide" style="background:#FFD400; color:#14213D;">Day Off — after Series ${row.afterSeriesNum}</div>`;
+      }
+      const hStarter = state.pitchers.find(p => p.id === row.hStarterId);
+      const vStarter = state.pitchers.find(p => p.id === row.vStarterId);
+      const resultTxt = row.completed
+        ? `${row.awayRuns}-${row.homeRuns} (Away-Home)`
+        : "—";
+      const detailsBtn = row.completed
+        ? `<button class="view-game-details-btn px-2 py-1 rounded text-xs font-medium" style="background: var(--accent); color: var(--chalk);" data-row-id="${row.id}">🔎 View Game Details</button>`
+        : "";
       return `
         <div class="lineup-slot-card">
-          <span class="lineup-slot-num">${g.gameNumber}</span>
-          <div class="flex-1 min-w-0 text-sm">
-            ${escapeHtml(g.homeTeam)} vs ${escapeHtml(g.awayTeam)}${pitcher ? ` — ${escapeHtml(pitcher.name)} (${pitcher.throwsHand})` : ""}
+          <span class="lineup-slot-num" style="font-size:13px;">${row.seriesNum}.${row.gameInSeries}</span>
+          <div class="flex-1 min-w-0 text-xs font-mono">
+            <div>Game ${row.overallGame} — ${row.homeAway === "Home" ? "vs" : "@"} ${escapeHtml(row.opponent)} (${row.dayNight})</div>
+            <div style="color: var(--ink-soft);">H: ${hStarter ? escapeHtml(hStarter.name) : "—"} | V: ${vStarter ? escapeHtml(vStarter.name) : "—"} | ${resultTxt}</div>
           </div>
-          <button class="load-matchup-btn px-2 py-1 rounded text-xs font-medium" style="background: var(--header-bg); color: var(--chalk);" data-game-id="${g.id}">Load Matchup</button>
+          ${detailsBtn}
+          <button class="load-matchup-btn px-2 py-1 rounded text-xs font-medium" style="background: var(--header-bg); color: var(--chalk);" data-row-id="${row.id}">Load Matchup</button>
         </div>`;
     }).join("");
     scheduleListEl.querySelectorAll(".load-matchup-btn").forEach(btn => {
       btn.addEventListener("click", () => {
-        const game = state.schedule.find(g => g.id === btn.dataset.gameId);
-        if (!game) return;
-        state.lineupPrefs.teamName = game.homeTeam;
-        state.lineupPrefs.opponentTeam = game.awayTeam;
-        if (game.awayPitcherId) state.lineupPrefs.opponentPitcherId = game.awayPitcherId;
+        const row = state.scheduleRows.find(r => r.id === btn.dataset.rowId);
+        if (!row) return;
+        state.lineupPrefs.teamName = state.scheduleMyTeam;
+        state.lineupPrefs.opponentTeam = row.opponent;
+        state.lineupPrefs.homeAway = row.homeAway;
+        const oppPitcherId = row.homeAway === "Home" ? row.vStarterId : row.hStarterId;
+        if (oppPitcherId) state.lineupPrefs.opponentPitcherId = oppPitcherId;
         saveData();
         document.querySelector('.tab-btn[data-tab="lineup"]').click();
       });
     });
+    scheduleListEl.querySelectorAll(".view-game-details-btn").forEach(btn => {
+      btn.addEventListener("click", () => openGameDetailsModal(btn.dataset.rowId));
+    });
   }
 
-  // ---- Post-Game Entry -------------------------------------------------------
-  const postgameTeamSelect = document.getElementById("postgame-team-select");
+  // ==========================================================================
+  // GAME DETAILS MODAL
+  // ==========================================================================
+  const gameDetailsModal = document.getElementById("game-details-modal");
+  const gameDetailsBody = document.getElementById("game-details-body");
+  const gameDetailsCloseBtn = document.getElementById("game-details-close-btn");
+  gameDetailsCloseBtn.addEventListener("click", () => gameDetailsModal.classList.add("hidden"));
+
+  function openGameDetailsModal(rowId) {
+    const row = state.scheduleRows.find(r => r.id === rowId);
+    if (!row) return;
+    const awayTeam = row.homeAway === "Home" ? row.opponent : state.scheduleMyTeam;
+    const homeTeam = row.homeAway === "Home" ? state.scheduleMyTeam : row.opponent;
+    const awayPitcher = state.pitchers.find(p => p.id === row.awayPitcherId);
+    const homePitcher = state.pitchers.find(p => p.id === row.homePitcherId);
+    const savePitcher = state.pitchers.find(p => p.id === row.savePitcherId);
+    const lineupHtml = (row.usedLineup || []).map((s, i) =>
+      `<div class="text-xs font-mono">${i + 1}. ${escapeHtml(s.name)} (${s.pos})</div>`
+    ).join("") || `<div class="text-xs" style="color: var(--ink-soft);">No lineup snapshot recorded for this game.</div>`;
+    const injuriesHtml = (row.injuriesLogged || []).map(inj =>
+      `<div class="text-xs">${escapeHtml(inj.name)} — ${inj.days === 0 ? "REM (removed from game)" : inj.days + " day(s)"}</div>`
+    ).join("") || `<div class="text-xs" style="color: var(--ink-soft);">None logged.</div>`;
+    const movesHtml = (row.movesThatDay || []).map(m => `<div class="text-xs">${escapeHtml(m)}</div>`).join("")
+      || `<div class="text-xs" style="color: var(--ink-soft);">None.</div>`;
+    gameDetailsBody.innerHTML = `
+      <div class="text-xs font-mono" style="color: var(--ink-soft);">Series ${row.seriesNum}, Game ${row.gameInSeries} (overall #${row.overallGame}) — ${row.homeAway} — ${row.dayNight}</div>
+      <table class="data-table" style="font-size:12px;">
+        <thead><tr><th class="left">Team</th><th>R</th><th>H</th><th>E</th></tr></thead>
+        <tbody>
+          <tr><td class="left">${escapeHtml(awayTeam)}</td><td class="font-mono">${fmtNum(row.awayRuns)}</td><td class="font-mono">${fmtNum(row.awayHits)}</td><td class="font-mono">${fmtNum(row.awayErrors)}</td></tr>
+          <tr><td class="left">${escapeHtml(homeTeam)}</td><td class="font-mono">${fmtNum(row.homeRuns)}</td><td class="font-mono">${fmtNum(row.homeHits)}</td><td class="font-mono">${fmtNum(row.homeErrors)}</td></tr>
+        </tbody>
+      </table>
+      <div class="text-xs font-mono">
+        W: ${awayPitcher && row.awayDecision === "W" ? escapeHtml(awayPitcher.name) : (homePitcher && row.homeDecision === "W" ? escapeHtml(homePitcher.name) : "—")} |
+        L: ${awayPitcher && row.awayDecision === "L" ? escapeHtml(awayPitcher.name) : (homePitcher && row.homeDecision === "L" ? escapeHtml(homePitcher.name) : "—")} |
+        S: ${savePitcher ? escapeHtml(savePitcher.name) : "—"}
+      </div>
+      <div><div class="position-group-title">Starting 1-9 Used</div>${lineupHtml}</div>
+      <div><div class="position-group-title">Injuries Logged</div>${injuriesHtml}</div>
+      <div><div class="position-group-title">Roster Moves That Day</div>${movesHtml}</div>
+    `;
+    gameDetailsModal.classList.remove("hidden");
+  }
+
+  // ==========================================================================
+  // PLAYER STATUS — injury/DL/fatigue/lock state per player, keyed by id.
+  // Lazily created so existing saved data never needs a migration pass.
+  // ==========================================================================
+  function getPlayerStatus(id) {
+    if (!state.playerStatus[id]) {
+      state.playerStatus[id] = {
+        injuryDaysRemaining: 0, isDL: false, dlDaysServed: 0, dlDaysRequired: 6,
+        tiredDaysRemaining: 0, lockUntilSeries: 0, lockReason: null, recentIP: [],
+      };
+    }
+    return state.playerStatus[id];
+  }
+
+  // Strat-O-Matic IP notation uses .1/.2 for thirds of an inning, not tenths
+  // — 4.2 means 4⅔ innings (14 outs), not 4.2 decimal innings. Every fatigue
+  // threshold below is compared in OUTS to avoid that decimal trap.
+  function ipToOuts(ip) {
+    const n = parseFloat(ip);
+    if (isNaN(n)) return 0;
+    const whole = Math.floor(n);
+    const frac = Math.round((n - whole) * 10);
+    return whole * 3 + Math.min(Math.max(frac, 0), 2);
+  }
+
+  // STARTER FATIGUE — every starter is tired at least 2 days; the asterisk
+  // in their endurance rating (already parsed as .threeDaysRest) selects
+  // which of the two threshold ladders applies. The 9.1/9.2-out gap between
+  // the spec's stated buckets is folded into the next bucket down so every
+  // IP total maps to a day count with no undefined gap.
+  function starterFatigueDays(ip, hasAsterisk) {
+    const outs = ipToOuts(ip);
+    if (hasAsterisk) {
+      if (outs <= 14) return 2;   // <=4.2
+      if (outs < 30) return 3;    // 5.0-9.2
+      return 4;                   // >=10.0
+    }
+    if (outs <= 11) return 2;     // <=3.2
+    if (outs <= 17) return 3;     // 4.0-5.2
+    if (outs < 30) return 4;      // 6.0-9.2
+    return 5;                     // >=10.0
+  }
+
+  function relieverRatingFromEndurance(raw) {
+    const v = raw || "";
+    const idx = v.indexOf("R(");
+    if (idx === -1) return null;
+    const close = v.indexOf(")", idx);
+    if (close === -1) return null;
+    const n = parseInt(v.slice(idx + 2, close), 10);
+    return isNaN(n) ? null : n;
+  }
+
+  // RELIEVER FATIGUE — takes the MAX of every applicable rule for a single
+  // appearance: general single-game workload, the R(1)/R(2) endurance-
+  // exceeded rule, three straight sub-1.0-IP appearances, and the rigid
+  // back-to-back rule (either of the last two consecutive games over 1.0 IP).
+  function relieverFatigueDays(pitcher, ip, overallGame) {
+    const outs = ipToOuts(ip);
+    let days = 0;
+    if (outs >= 18) days = Math.max(days, 3);
+    else if (outs >= 12) days = Math.max(days, 2);
+    else if (outs >= 9) days = Math.max(days, 1);
+    const rating = relieverRatingFromEndurance(pitcher.endurance.raw);
+    if ((rating === 1 || rating === 2) && outs > rating * 3) days = Math.max(days, 1);
+    const st = getPlayerStatus(pitcher.id);
+    const history = (st.recentIP || []).concat([{ game: overallGame, ip: outs / 3 }]).slice(-3);
+    if (history.length === 3 && history.every(h => h.ip <= 1.0)) days = Math.max(days, 1);
+    if (history.length >= 2) {
+      const lastTwo = history.slice(-2);
+      if (lastTwo[1].game - lastTwo[0].game === 1 && lastTwo.some(h => h.ip > 1.0)) days = Math.max(days, 1);
+    }
+    return days;
+  }
+
+  // INJURY CAPS — Iron Pitcher (>=195 carded IP, an asterisk endurance, or
+  // Tarik Skubal by name) caps at 4 days plus whatever rest they already
+  // owe from the same appearance. Super Iron Hitter (season-scaled PA
+  // threshold) is REM — removed for the game, zero forward days. Iron
+  // Hitter caps at exactly 2 days. Anyone else uses the days entered as-is.
+  function cappedInjuryDays(player, enteredDays, isPitcher, extraRestDays) {
+    const entered = Number(enteredDays) || 0;
+    if (isPitcher) {
+      const isIronPitcher = (player.ip || 0) >= 195 || player.endurance.threeDaysRest || player.name === "Tarik Skubal";
+      if (isIronPitcher) return { days: Math.min(entered, 4) + (extraRestDays || 0), rem: false };
+      return { days: entered + (extraRestDays || 0), rem: false };
+    }
+    if (player.ironStatus === "Super Iron") return { days: 0, rem: true };
+    if (player.ironStatus === "Iron") return { days: Math.min(entered, 2), rem: false };
+    return { days: entered, rem: false };
+  }
+
+  // ==========================================================================
+  // POST-GAME SCORECARD — dual-team RHE box score + pitcher decisions,
+  // AB/IP totals, injury countdowns (capped per Iron rules), pitcher
+  // fatigue, a full historical game-status snapshot (for the Timelines
+  // grid), and the calendar-days recovery tick.
+  // ==========================================================================
+  const postgameEmpty = document.getElementById("postgame-empty");
+  const postgameFormWrap = document.getElementById("postgame-form-wrap");
+  const postgameNextLabel = document.getElementById("postgame-next-label");
+  const pgAwayTeamLabel = document.getElementById("pg-away-team-label");
+  const pgHomeTeamLabel = document.getElementById("pg-home-team-label");
+  const pgAwayRuns = document.getElementById("pg-away-runs");
+  const pgHomeRuns = document.getElementById("pg-home-runs");
+  const pgAwayHits = document.getElementById("pg-away-hits");
+  const pgHomeHits = document.getElementById("pg-home-hits");
+  const pgAwayErrors = document.getElementById("pg-away-errors");
+  const pgHomeErrors = document.getElementById("pg-home-errors");
+  const pgAwayPitcherSelect = document.getElementById("pg-away-pitcher");
+  const pgHomePitcherSelect = document.getElementById("pg-home-pitcher");
+  const pgAwayDecisionSelect = document.getElementById("pg-away-decision");
+  const pgHomeDecisionSelect = document.getElementById("pg-home-decision");
+  const pgSavePitcherSelect = document.getElementById("pg-save-pitcher");
   const postgameHittersList = document.getElementById("postgame-hitters-list");
   const postgamePitchersList = document.getElementById("postgame-pitchers-list");
   const postgameSubmitBtn = document.getElementById("postgame-submit-btn");
-  const advanceGameBtn = document.getElementById("advance-game-btn");
   const postgameStatus = document.getElementById("postgame-status");
 
-  function renderPostgameTeamSelect() {
-    const teams = getUniqueTeams();
-    postgameTeamSelect.innerHTML = teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
-    renderPostgameRosterInputs();
+  function statusBadgesFor(id, isPitcher) {
+    const st = getPlayerStatus(id);
+    let html = "";
+    if (st.isDL) html += ` <span class="badge" style="background:#7C3AED;color:#fff;">DL</span>`;
+    else if (st.injuryDaysRemaining > 0) html += ` <span class="badge" style="background:#DC2626;color:#fff;">INJ ${st.injuryDaysRemaining}d</span>`;
+    if (isPitcher && st.tiredDaysRemaining > 0) html += ` <span class="badge" style="background:#EC4899;color:#fff;">TIRED ${st.tiredDaysRemaining}d</span>`;
+    return html;
   }
-  postgameTeamSelect.addEventListener("change", renderPostgameRosterInputs);
 
-  function renderPostgameRosterInputs() {
-    const team = postgameTeamSelect.value;
-    const hitters = state.hitters.filter(p => p.jhmlTeam === team);
-    const pitchers = state.pitchers.filter(p => p.jhmlTeam === team);
+  function renderPostgameTab() {
+    const nextIdx = nextUnplayedGameIndex();
+    if (nextIdx === -1 || !state.scheduleMyTeam) {
+      postgameEmpty.classList.remove("hidden");
+      postgameFormWrap.classList.add("hidden");
+      return;
+    }
+    postgameEmpty.classList.add("hidden");
+    postgameFormWrap.classList.remove("hidden");
+    const row = state.scheduleRows[nextIdx];
+    const myTeam = state.scheduleMyTeam;
+    const awayTeam = row.homeAway === "Home" ? row.opponent : myTeam;
+    const homeTeam = row.homeAway === "Home" ? myTeam : row.opponent;
+    postgameNextLabel.textContent = `Game ${row.overallGame} — ${awayTeam} @ ${homeTeam} (${row.dayNight})`;
+    pgAwayTeamLabel.textContent = awayTeam;
+    pgHomeTeamLabel.textContent = homeTeam;
+
+    const hitters = state.hitters.filter(p => p.jhmlTeam === myTeam);
+    const pitchers = state.pitchers.filter(p => p.jhmlTeam === myTeam);
+
     postgameHittersList.innerHTML = hitters.map(p => `
-      <div class="flex items-center justify-between gap-2 text-sm" style="border-bottom: 1px solid var(--border); padding: 3px 0;">
-        <span>${escapeHtml(p.name)} <span class="text-[11px] font-mono" style="color: var(--ink-soft);">(${cumulativeAB(p.id)} AB so far / ${fmtNum(p.ab)} carded)</span></span>
-        <input type="number" min="0" value="0" class="field-input rounded px-2 py-1 text-sm w-20 postgame-ab-input" data-player-id="${p.id}">
+      <div class="flex items-center justify-between gap-2 text-sm flex-wrap" style="border-bottom: 1px solid var(--border); padding: 4px 0;">
+        <span>${escapeHtml(p.name)} <span class="text-[11px] font-mono" style="color: var(--ink-soft);">(${cumulativeAB(p.id)} AB so far / ${fmtNum(p.jhmlAbCap)} JHML cap)</span>${statusBadgesFor(p.id, false)}</span>
+        <div class="flex items-center gap-2">
+          <input type="number" min="0" value="0" class="field-input rounded px-2 py-1 text-sm w-16 postgame-ab-input" data-player-id="${p.id}">
+          <label class="flex items-center gap-1 text-[11px]"><input type="checkbox" class="postgame-injured-check" data-player-id="${p.id}"> Injured</label>
+          <input type="number" min="0" placeholder="days" class="field-input rounded px-2 py-1 text-sm w-16 postgame-injury-days" data-player-id="${p.id}">
+        </div>
       </div>`).join("") || `<p class="text-sm" style="color: var(--ink-soft);">No hitters on this team.</p>`;
+
     postgamePitchersList.innerHTML = pitchers.map(p => `
-      <div class="flex items-center justify-between gap-2 text-sm" style="border-bottom: 1px solid var(--border); padding: 3px 0;">
-        <span>${escapeHtml(p.name)} <span class="text-[11px] font-mono" style="color: var(--ink-soft);">(${cumulativeIP(p.id)} IP so far / ${fmtNum(p.ip)} carded)</span></span>
-        <input type="number" min="0" step="0.1" value="0" class="field-input rounded px-2 py-1 text-sm w-20 postgame-ip-input" data-player-id="${p.id}">
+      <div class="flex items-center justify-between gap-2 text-sm flex-wrap" style="border-bottom: 1px solid var(--border); padding: 4px 0;">
+        <span>${escapeHtml(p.name)} <span class="text-[11px] font-mono" style="color: var(--ink-soft);">(${cumulativeIP(p.id)} IP so far / ${fmtNum(p.jhmlIpCap)} JHML cap)</span>${statusBadgesFor(p.id, true)}</span>
+        <div class="flex items-center gap-2">
+          <input type="number" min="0" step="0.1" value="0" class="field-input rounded px-2 py-1 text-sm w-16 postgame-ip-input" data-player-id="${p.id}">
+          <label class="flex items-center gap-1 text-[11px]"><input type="checkbox" class="postgame-injured-check-p" data-player-id="${p.id}"> Injured</label>
+          <input type="number" min="0" placeholder="days" class="field-input rounded px-2 py-1 text-sm w-16 postgame-injury-days-p" data-player-id="${p.id}">
+        </div>
       </div>`).join("") || `<p class="text-sm" style="color: var(--ink-soft);">No pitchers on this team.</p>`;
+
+    const awayRoster = state.pitchers.filter(p => p.jhmlTeam === awayTeam);
+    const homeRoster = state.pitchers.filter(p => p.jhmlTeam === homeTeam);
+    pgAwayPitcherSelect.innerHTML = `<option value="">— select —</option>` + awayRoster.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
+    pgHomePitcherSelect.innerHTML = `<option value="">— select —</option>` + homeRoster.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
+    pgSavePitcherSelect.innerHTML = `<option value="">— none —</option>` + awayRoster.concat(homeRoster).map(p => `<option value="${p.id}">${escapeHtml(p.name)} (${escapeHtml(p.jhmlTeam || "—")})</option>`).join("");
   }
 
   postgameSubmitBtn.addEventListener("click", () => {
-    let updated = 0;
+    const nextIdx = nextUnplayedGameIndex();
+    if (nextIdx === -1) return;
+    const row = state.scheduleRows[nextIdx];
+    const overallGame = row.overallGame;
+    const myTeam = state.scheduleMyTeam;
+
+    // Snapshot every active countdown status for MY team's roster BEFORE
+    // this game's own fatigue/injury updates are applied, so the Timelines
+    // grid can show what was actually true going into this game.
+    const historySnapshot = {};
+    [...state.hitters, ...state.pitchers].filter(p => p.jhmlTeam === myTeam).forEach(p => {
+      const st = getPlayerStatus(p.id);
+      const isMinors = String(p.status || "").trim().toLowerCase() === "minors";
+      let color = "#E4DBC3";
+      if (st.isDL) color = "#7C3AED";
+      else if (st.injuryDaysRemaining > 0) color = "#DC2626";
+      else if (isMinors) color = "#F59E0B";
+      else if (st.tiredDaysRemaining > 0 && (state.pitchers.find(pp => pp.id === p.id))) color = "#EC4899";
+      historySnapshot[p.id] = color;
+    });
+    state.gameHistory = state.gameHistory || {};
+    state.gameHistory[overallGame] = historySnapshot;
+
+    row.completed = true;
+    row.awayRuns = Number(pgAwayRuns.value) || 0;
+    row.homeRuns = Number(pgHomeRuns.value) || 0;
+    row.awayHits = Number(pgAwayHits.value) || 0;
+    row.homeHits = Number(pgHomeHits.value) || 0;
+    row.awayErrors = Number(pgAwayErrors.value) || 0;
+    row.homeErrors = Number(pgHomeErrors.value) || 0;
+    row.awayPitcherId = pgAwayPitcherSelect.value || null;
+    row.homePitcherId = pgHomePitcherSelect.value || null;
+    row.awayDecision = pgAwayDecisionSelect.value || null;
+    row.homeDecision = pgHomeDecisionSelect.value || null;
+    row.savePitcherId = pgSavePitcherSelect.value || null;
+
+    // Snapshot the starting 1-9 actually used, if a live lineup is locked in
+    // for this exact matchup.
+    const gs = state.gameState;
+    if (gs && gs.myTeam === myTeam && gs.opponentTeam === row.opponent) {
+      row.usedLineup = gs.startingIds.map(entry => {
+        const hitter = state.hitters.find(h => h.id === entry.id);
+        return { name: hitter ? hitter.name : "—", pos: entry.pos };
+      });
+    }
+
+    const injuriesLogged = [];
     postgameHittersList.querySelectorAll(".postgame-ab-input").forEach(inp => {
       const val = Number(inp.value) || 0;
+      const id = inp.dataset.playerId;
       if (val > 0) {
-        const id = inp.dataset.playerId;
         state.seasonTotals.hitters[id] = state.seasonTotals.hitters[id] || { ab: 0 };
         state.seasonTotals.hitters[id].ab += val;
-        updated++;
       }
     });
+    postgameHittersList.querySelectorAll(".postgame-injured-check").forEach(chk => {
+      if (!chk.checked) return;
+      const id = chk.dataset.playerId;
+      const daysInput = postgameHittersList.querySelector(`.postgame-injury-days[data-player-id="${id}"]`);
+      const entered = Number(daysInput && daysInput.value) || 0;
+      const player = state.hitters.find(p => p.id === id);
+      if (!player) return;
+      const capped = cappedInjuryDays(player, entered, false, 0);
+      const st = getPlayerStatus(id);
+      st.injuryDaysRemaining = Math.max(st.injuryDaysRemaining, capped.days);
+      injuriesLogged.push({ name: player.name, days: capped.rem ? 0 : capped.days });
+    });
+
     postgamePitchersList.querySelectorAll(".postgame-ip-input").forEach(inp => {
       const val = Number(inp.value) || 0;
-      if (val > 0) {
-        const id = inp.dataset.playerId;
-        state.seasonTotals.pitchers[id] = state.seasonTotals.pitchers[id] || { ip: 0 };
-        state.seasonTotals.pitchers[id].ip += val;
-        updated++;
-      }
+      const id = inp.dataset.playerId;
+      if (val <= 0) return;
+      state.seasonTotals.pitchers[id] = state.seasonTotals.pitchers[id] || { outs: 0 };
+      state.seasonTotals.pitchers[id].outs = (state.seasonTotals.pitchers[id].outs || 0) + ipToOuts(val);
+      const pitcher = state.pitchers.find(p => p.id === id);
+      if (!pitcher) return;
+      const st = getPlayerStatus(id);
+      const fatigueDays = pitcher.endurance.isStarter
+        ? Math.max(2, starterFatigueDays(val, pitcher.endurance.threeDaysRest))
+        : relieverFatigueDays(pitcher, val, overallGame);
+      st.tiredDaysRemaining = Math.max(st.tiredDaysRemaining, fatigueDays);
+      st.recentIP = (st.recentIP || []).concat([{ game: overallGame, ip: val }]).slice(-3);
     });
-    saveData();
-    renderPostgameRosterInputs();
-    try { renderRosterBody(); } catch (e) { /* ignore if roster tab not active */ }
-    postgameStatus.textContent = `Added totals for ${updated} player(s).`;
-  });
+    postgamePitchersList.querySelectorAll(".postgame-injured-check-p").forEach(chk => {
+      if (!chk.checked) return;
+      const id = chk.dataset.playerId;
+      const daysInput = postgamePitchersList.querySelector(`.postgame-injury-days-p[data-player-id="${id}"]`);
+      const entered = Number(daysInput && daysInput.value) || 0;
+      const player = state.pitchers.find(p => p.id === id);
+      if (!player) return;
+      const st = getPlayerStatus(id);
+      const capped = cappedInjuryDays(player, entered, true, st.tiredDaysRemaining);
+      st.injuryDaysRemaining = Math.max(st.injuryDaysRemaining, capped.days);
+      injuriesLogged.push({ name: player.name, days: capped.days });
+    });
+    row.injuriesLogged = injuriesLogged;
+    row.movesThatDay = state.transactionLog.filter(entry => entry.startsWith(`[Game ${overallGame}]`));
 
-  advanceGameBtn.addEventListener("click", () => {
-    state.seasonGameCount += 1;
+    // CALENDAR-DAYS RECOVERY: every active countdown drops 1 day for the day
+    // just played. (A 2nd day, if this completes the 3rd consecutive
+    // series, is applied separately by checkAndInjectDayOff below.)
+    Object.values(state.playerStatus).forEach(st => {
+      if (st.injuryDaysRemaining > 0) st.injuryDaysRemaining = Math.max(0, st.injuryDaysRemaining - 1);
+      if (st.tiredDaysRemaining > 0) st.tiredDaysRemaining = Math.max(0, st.tiredDaysRemaining - 1);
+      if (st.isDL) st.dlDaysServed += 1;
+    });
+    checkAndInjectDayOff(row.seriesNum);
+
+    state.seasonGameCount = state.scheduleRows.filter(r => r.type === "game" && r.completed).length;
     saveData();
-    postgameStatus.textContent = `Advanced to game ${state.seasonGameCount} of 102.`;
     renderScheduleList();
+    renderPostgameTab();
+    try { renderRosterBody(); } catch (e) { /* roster tab not active */ }
+    postgameStatus.textContent = `Logged Game ${overallGame}.`;
   });
 
-  // ---- Trades -------------------------------------------------------
-  const tradePlayerSelect = document.getElementById("trade-player-select");
-  const tradeTeamSelect = document.getElementById("trade-team-select");
-  const tradeExecuteBtn = document.getElementById("trade-execute-btn");
+  // ==========================================================================
+  // TRANSACTIONS — the 60-move cap (with its exemptions), the 3-series roster
+  // lock (with its exceptions), and the 6-day DL system. Each log entry is
+  // tagged with the current game number so the Game Details modal can show
+  // which moves happened on a given day.
+  // ==========================================================================
+  const txnPlayerSelect = document.getElementById("txn-player-select");
+  const txnTypeSelect = document.getElementById("txn-type-select");
+  const txnNewTeamWrap = document.getElementById("txn-new-team-wrap");
+  const txnNewTeamSelect = document.getElementById("txn-new-team-select");
+  const txnExcBeforeG1 = document.getElementById("txn-exc-beforeg1");
+  const txnExcAugustLast2 = document.getElementById("txn-exc-augustlast2");
+  const txnExcDlReplace = document.getElementById("txn-exc-dlreplace");
+  const txnExecuteBtn = document.getElementById("txn-execute-btn");
+  const movesUsedLabel = document.getElementById("moves-used-label");
+  const dlEligibleList = document.getElementById("dl-eligible-list");
+  const dlEligibleEmpty = document.getElementById("dl-eligible-empty");
+  const dlActiveList = document.getElementById("dl-active-list");
+  const dlActiveEmpty = document.getElementById("dl-active-empty");
+  const lockList = document.getElementById("lock-list");
+  const lockEmpty = document.getElementById("lock-empty");
   const tradeLogList = document.getElementById("trade-log-list");
   const tradeLogEmpty = document.getElementById("trade-log-empty");
 
-  function renderTradeForm() {
+  const TXN_EXEMPT_TYPES = new Set(["september_recall", "injury_replacement_recall", "dl_or_trade_senddown"]);
+
+  function currentGameNumberForLog() {
+    const idx = nextUnplayedGameIndex();
+    if (idx !== -1) return state.scheduleRows[idx].overallGame;
+    const games = state.scheduleRows.filter(r => r.type === "game");
+    return games.length ? games[games.length - 1].overallGame : 0;
+  }
+
+  txnTypeSelect.addEventListener("change", () => {
+    txnNewTeamWrap.style.display = txnTypeSelect.value === "trade" ? "" : "none";
+  });
+
+  txnExecuteBtn.addEventListener("click", () => {
+    const [kind, id] = (txnPlayerSelect.value || "").split(":");
+    const moveType = txnTypeSelect.value;
+    if (!kind || !id) return;
+    const list = kind === "pitcher" ? state.pitchers : state.hitters;
+    const player = list.find(p => p.id === id);
+    if (!player) return;
+    const st = getPlayerStatus(id);
+    const gameTag = `[Game ${currentGameNumberForLog()}]`;
+
+    if (moveType === "trade") {
+      const newTeam = txnNewTeamSelect.value;
+      if (!newTeam) return;
+      const oldTeam = player.jhmlTeam;
+      player.jhmlTeam = newTeam;
+      state.transactionLog.unshift(`${gameTag} ${player.name} traded from ${oldTeam || "—"} to ${newTeam}`);
+    } else if (moveType === "callup") {
+      player.status = "Majors";
+      state.transactionLog.unshift(`${gameTag} ${player.name} called up to the Majors`);
+    } else if (moveType === "senddown" || moveType === "dl_or_trade_senddown") {
+      player.status = "Minors";
+      state.transactionLog.unshift(`${gameTag} ${player.name} sent down to the Minors`);
+    } else if (moveType === "dl_activate") {
+      st.isDL = false; st.dlDaysServed = 0; st.injuryDaysRemaining = 0;
+      player.status = "Majors";
+      state.transactionLog.unshift(`${gameTag} ${player.name} activated from the DL`);
+    } else {
+      player.status = "Majors";
+      state.transactionLog.unshift(`${gameTag} ${player.name} recalled to the Majors (${moveType === "september_recall" ? "September recall" : "injury replacement"})`);
+    }
+
+    if (!TXN_EXEMPT_TYPES.has(moveType)) state.movesUsed = (state.movesUsed || 0) + 1;
+
+    const exceptionChecked = txnExcBeforeG1.checked || txnExcAugustLast2.checked || txnExcDlReplace.checked;
+    if (!TXN_EXEMPT_TYPES.has(moveType) && !exceptionChecked) {
+      st.lockUntilSeries = currentSeriesNumber() + 3;
+      st.lockReason = moveType;
+    } else {
+      st.lockUntilSeries = 0; st.lockReason = null;
+    }
+
+    state.transactionLog = state.transactionLog.slice(0, 60);
+    saveData();
+    txnExcBeforeG1.checked = false; txnExcAugustLast2.checked = false; txnExcDlReplace.checked = false;
+    try { renderRosterTeamSelect(); } catch (e) { /* ignore */ }
+    renderTransactionsTab();
+  });
+
+  function renderDLSection() {
+    const injured = [...state.hitters, ...state.pitchers].filter(p => {
+      const st = getPlayerStatus(p.id);
+      return st.injuryDaysRemaining > 0 && !st.isDL;
+    });
+    dlEligibleEmpty.classList.toggle("hidden", injured.length > 0);
+    dlEligibleList.innerHTML = injured.map(p => {
+      const st = getPlayerStatus(p.id);
+      return `<div class="lineup-slot-card"><div class="flex-1 text-sm">${escapeHtml(p.name)} — injured, ${st.injuryDaysRemaining}d remaining</div>
+        <button class="px-2 py-1 rounded text-xs font-medium place-dl-btn" style="background:#7C3AED;color:#fff;" data-player-id="${p.id}">Place on DL</button></div>`;
+    }).join("");
+    dlEligibleList.querySelectorAll(".place-dl-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const st = getPlayerStatus(btn.dataset.playerId);
+        st.isDL = true; st.dlDaysServed = 0; st.dlDaysRequired = 6;
+        saveData();
+        renderTransactionsTab();
+      });
+    });
+
+    const onDL = [...state.hitters, ...state.pitchers].filter(p => getPlayerStatus(p.id).isDL);
+    dlActiveEmpty.classList.toggle("hidden", onDL.length > 0);
+    dlActiveList.innerHTML = onDL.map(p => {
+      const st = getPlayerStatus(p.id);
+      const eligible = st.dlDaysServed >= st.dlDaysRequired;
+      return `<div class="lineup-slot-card"><div class="flex-1 text-sm">${escapeHtml(p.name)} — DL day ${st.dlDaysServed}/${st.dlDaysRequired}${eligible ? ' <span class="badge" style="background:#1B5E20;color:#fff;">Eligible to activate</span>' : ""}</div></div>`;
+    }).join("");
+  }
+
+  function renderLockSection() {
+    const currentSeries = currentSeriesNumber();
+    const locked = [...state.hitters, ...state.pitchers]
+      .map(p => ({ p, st: getPlayerStatus(p.id) }))
+      .filter(({ st }) => st.lockUntilSeries > currentSeries);
+    lockEmpty.classList.toggle("hidden", locked.length > 0);
+    lockList.innerHTML = locked.map(({ p, st }) =>
+      `<div class="lineup-slot-card"><div class="flex-1 text-sm">${escapeHtml(p.name)} <span class="badge" style="background:var(--header-bg);color:var(--chalk);">Locked: ${st.lockUntilSeries - currentSeries} series left</span></div></div>`
+    ).join("");
+  }
+
+  function renderTradeLog() {
+    tradeLogEmpty.classList.toggle("hidden", state.transactionLog.length > 0);
+    tradeLogList.innerHTML = state.transactionLog.slice(0, 15).map(entry =>
+      `<div class="text-sm font-mono" style="border-bottom: 1px solid var(--border); padding: 3px 0;">${escapeHtml(entry)}</div>`
+    ).join("");
+  }
+
+  function renderTransactionsTab() {
+    movesUsedLabel.textContent = String(state.movesUsed || 0);
     const all = [
       ...state.hitters.map(p => ({ id: p.id, kind: "hitter", name: p.name, team: p.jhmlTeam })),
       ...state.pitchers.map(p => ({ id: p.id, kind: "pitcher", name: p.name, team: p.jhmlTeam })),
     ].sort((a, b) => a.name.localeCompare(b.name));
-    tradePlayerSelect.innerHTML = all.map(p =>
+    txnPlayerSelect.innerHTML = all.map(p =>
       `<option value="${p.kind}:${p.id}">${escapeHtml(p.name)} (${p.kind === "pitcher" ? "P" : "H"}) — ${escapeHtml(p.team || "—")}</option>`
     ).join("");
     const teams = getUniqueTeams();
-    tradeTeamSelect.innerHTML = teams.map(t => `<option value="${escapeHtml(t)}">${t === "Free Agent" ? "Free Agents (fre)" : escapeHtml(t)}</option>`).join("");
+    txnNewTeamSelect.innerHTML = teams.map(t => `<option value="${escapeHtml(t)}">${t === "Free Agent" ? "Free Agents (fre)" : escapeHtml(t)}</option>`).join("");
+    txnNewTeamWrap.style.display = txnTypeSelect.value === "trade" ? "" : "none";
+    renderDLSection();
+    renderLockSection();
+    renderTradeLog();
   }
 
-  tradeExecuteBtn.addEventListener("click", () => {
-    const [kind, id] = (tradePlayerSelect.value || "").split(":");
-    const newTeam = tradeTeamSelect.value;
-    if (!kind || !id || !newTeam) return;
-    const list = kind === "pitcher" ? state.pitchers : state.hitters;
-    const player = list.find(p => p.id === id);
-    if (!player) return;
-    const oldTeam = player.jhmlTeam;
-    player.jhmlTeam = newTeam;
-    state.transactionLog.unshift(`${player.name} moved from ${oldTeam || "—"} to ${newTeam}`);
-    state.transactionLog = state.transactionLog.slice(0, 20);
-    saveData();
-    try { renderRosterTeamSelect(); } catch (e) { /* ignore */ }
-    renderTradeForm();
-    renderTradeLog();
-  });
+  // ==========================================================================
+  // TIMELINES — full chronological grid, Game 1 through the latest scheduled
+  // game, no truncation. Past games read the REAL recorded snapshot from
+  // state.gameHistory (captured at the moment each scorecard was submitted);
+  // games not yet played are projected forward from each player's current
+  // countdowns, same as before.
+  // ==========================================================================
+  const timelineHittersEl = document.getElementById("timeline-hitters");
+  const timelinePitchersEl = document.getElementById("timeline-pitchers");
 
-  function renderTradeLog() {
-    tradeLogEmpty.classList.toggle("hidden", state.transactionLog.length > 0);
-    tradeLogList.innerHTML = state.transactionLog.slice(0, 10).map(entry =>
-      `<div class="text-sm font-mono" style="border-bottom: 1px solid var(--border); padding: 3px 0;">${escapeHtml(entry)}</div>`
-    ).join("");
+  function buildTimelineTable(players, isPitcher, allRows, nextIdx) {
+    if (!allRows.length) return `<p class="text-sm py-2" style="color: var(--ink-soft);">No games scheduled yet.</p>`;
+    if (!players.length) return `<p class="text-sm py-2" style="color: var(--ink-soft);">No players on this roster.</p>`;
+    const futureRows = nextIdx === -1 ? [] : allRows.slice(nextIdx);
+    const headerCells = allRows.map(r => `<div title="${r.type === "dayoff" ? "Day Off" : "Game " + r.overallGame}" style="width:14px; font-size:8px; text-align:center; flex-shrink:0;">${r.type === "dayoff" ? "DO" : r.overallGame}</div>`).join("");
+
+    const playerRows = players.map(p => {
+      // Live per-player forward-projection counters, seeded from current state.
+      const st = getPlayerStatus(p.id);
+      const isMinors = String(p.status || "").trim().toLowerCase() === "minors";
+      let injuryLeft = st.injuryDaysRemaining, tiredLeft = st.tiredDaysRemaining;
+      let dlLeft = st.isDL ? Math.max(0, st.dlDaysRequired - st.dlDaysServed) : 0;
+      const cells = allRows.map(row => {
+        const isPast = row.type === "game" && row.completed;
+        let color;
+        if (row.type === "dayoff") {
+          color = "#FFD400";
+        } else if (isPast) {
+          const snap = (state.gameHistory && state.gameHistory[row.overallGame]) || {};
+          color = snap[p.id] || "#E4DBC3";
+        } else {
+          color = "#E4DBC3";
+          if (dlLeft > 0) color = "#7C3AED";
+          else if (injuryLeft > 0) color = "#DC2626";
+          else if (isMinors) color = "#F59E0B";
+          else if (isPitcher && tiredLeft > 0) color = "#EC4899";
+          if (injuryLeft > 0) injuryLeft--;
+          if (tiredLeft > 0) tiredLeft--;
+          if (dlLeft > 0) dlLeft--;
+        }
+        return { color, label: row.type === "dayoff" ? "Day Off" : "Game " + row.overallGame };
+      });
+      const cellsHtml = cells.map(c => `<div title="${c.label}" style="width:14px; height:16px; flex-shrink:0; background:${c.color}; border-right:1px solid rgba(0,0,0,0.08);"></div>`).join("");
+      return `<div class="flex items-center"><div style="width:130px; flex-shrink:0; font-size:11px; padding-right:4px;" class="truncate">${escapeHtml(p.name)}</div><div class="flex">${cellsHtml}</div></div>`;
+    }).join("");
+    return `<div style="min-width:max-content;"><div class="flex"><div style="width:130px; flex-shrink:0;"></div><div class="flex">${headerCells}</div></div>${playerRows}</div>`;
+  }
+
+  function renderTimelines() {
+    const myTeam = state.scheduleMyTeam;
+    if (!myTeam || !state.scheduleRows.length) {
+      timelineHittersEl.innerHTML = `<p class="text-sm py-2" style="color: var(--ink-soft);">Schedule at least one series on the Schedule sub-tab first.</p>`;
+      timelinePitchersEl.innerHTML = "";
+      return;
+    }
+    const nextIdx = nextUnplayedGameIndex();
+    const hitters = state.hitters.filter(p => p.jhmlTeam === myTeam);
+    const pitchers = state.pitchers.filter(p => p.jhmlTeam === myTeam);
+    timelineHittersEl.innerHTML = buildTimelineTable(hitters, false, state.scheduleRows, nextIdx);
+    timelinePitchersEl.innerHTML = buildTimelineTable(pitchers, true, state.scheduleRows, nextIdx);
   }
 
   // ---------- INIT ----------
